@@ -1,0 +1,390 @@
+import pandas as pd
+import numpy as np
+import math
+from scipy.stats import ttest_ind, mannwhitneyu, shapiro
+import matplotlib.pyplot as plt
+import scipy.stats as stats
+from scipy.stats import kstest, zscore
+
+gen = pd.read_csv('/account001/mansi.chandra/clin_path/results_vae_corr_mod3_cv2_nowt/predictions_decoded/test/generated_predictions_1161985_ControlGenerator_train.csv')
+control = pd.read_csv('/account001/mansi.chandra/clin_path/repeat_train_control_cv2.csv')
+treatment = pd.read_csv('/account001/mansi.chandra/clin_path/repeat_train_treatment_cv2.csv')
+real = pd.concat([control, treatment], ignore_index=True, sort=False)
+
+
+#optimizing the prediction values to be consistent with real 
+
+gen["TBIL(mg/dL)"] = pd.to_numeric(gen["TBIL(mg/dL)"], errors="coerce").round(2)
+gen["RALB(g/dL)"] = pd.to_numeric(gen["RALB(g/dL)"], errors="coerce").round(2)
+gen["AST(IU/L)"] = pd.to_numeric(gen["AST(IU/L)"], errors="coerce").round().astype(int)
+gen["TP(g/dL)"] = pd.to_numeric(gen["TP(g/dL)"], errors="coerce").round(1)
+#gen["CRE(mg/dL)"] = pd.to_numeric(gen["CRE(mg/dL)"], errors="coerce").round(1)
+gen["DBIL(mg/dL)"] = pd.to_numeric(gen["DBIL(mg/dL)"], errors="coerce").round(2)
+gen["BUN(mg/dL)"] = pd.to_numeric(gen["BUN(mg/dL)"], errors="coerce").round().astype(int)
+#gen["K(meq/L)"] = pd.to_numeric(gen["K(meq/L)"], errors="coerce").round(2)
+#gen["GTP(IU/L)"] = pd.to_numeric(gen["GTP(IU/L)"], errors="coerce").round().astype(int)
+#gen["Ca(mg/dL)"] = pd.to_numeric(gen["Ca(mg/dL)"], errors="coerce").round(1)
+#gen["Cl(meq/L)"] = pd.to_numeric(gen["Cl(meq/L)"], errors="coerce").round(1)
+#gen["Na(meq/L)"] = pd.to_numeric(gen["Na(meq/L)"], errors="coerce").round(1)
+#gen["IP(mg/dL)"] = pd.to_numeric(gen["IP(mg/dL)"], errors="coerce").round(1)
+gen["ALP(IU/L)"] = pd.to_numeric(gen["ALP(IU/L)"], errors="coerce").round().astype(int)
+gen["ALT(IU/L)"] = pd.to_numeric(gen["ALT(IU/L)"], errors="coerce").round().astype(int)
+gen["LDH(IU/L)"] = pd.to_numeric(gen["LDH(IU/L)"], errors="coerce").round().astype(int)
+gen["RALB(g/dL)"] = pd.to_numeric(gen["RALB(g/dL)"], errors="coerce").round(1)
+
+
+# 1) Which features to score? (columns 11 onward)
+feature_cols = real.columns[11:]
+
+results = []
+
+# 2) Loop per (compound, time)
+for (compound, time), grp in real.groupby(['COMPOUND_NAME','SACRIFICE_PERIOD']):
+    # 2a) pull the control rows
+    ctrl = grp[grp['DOSE_LEVEL']=='Control']
+    if ctrl.shape[0] < 2:
+        continue
+
+    # 2b) precompute control means & SDs per feature
+    ctrl_means = ctrl[feature_cols].mean()
+    ctrl_sds   = ctrl[feature_cols].std(ddof=1)
+
+    # 3) for each treatment dose
+    for dose in ['High']:
+        trt = grp[grp['DOSE_LEVEL']==dose]
+        if trt.empty:
+            continue
+
+        # 4) compute z‑scores for each individual treatment sample
+        for _, row in trt.iterrows():
+            rec = {
+                'compound':      compound,
+                'time':          time,
+                'dose':          dose,
+                'INDIVIDUAL_ID': row['INDIVIDUAL_ID']
+            }
+            for f in feature_cols:
+                μ = ctrl_means[f]
+                σ = ctrl_sds[f]
+                x = row[f]
+
+                # cannot compute if SD is zero or missing
+                if pd.isna(σ) or σ == 0:
+                    rec[f'{f}_z'] = np.nan
+                else:
+                    rec[f'{f}_z'] = (x - μ) / σ
+
+            results.append(rec)
+
+# 5) Build the final DataFrame
+results_df = pd.DataFrame(results)
+
+z_cols = [c for c in results_df.columns if c.endswith('_z')]
+
+# 1) Build NA-aware abnormal flags per cell (feature × sample)
+for z in z_cols:
+    abn = results_df[z].abs().gt(2)            # True/False; NaN -> False
+    abn = abn.astype('boolean')                # nullable boolean dtype
+    abn = abn.where(results_df[z].notna(), pd.NA)   # restore NaN as <unknown>
+    results_df[f'{z}_abn'] = abn
+
+# 2) Per-feature treatment calls, dropping only the NA cells for that feature
+feature_counts = []
+for z in z_cols:
+    grp = (
+        results_df
+          .groupby(['compound','time','dose'])[f'{z}_abn']
+          .agg(
+              valid_n=lambda s: s.notna().sum(),         # samples with a real z
+              abn_any=lambda s: s.any(skipna=True)       # any True among non-NA
+          )
+          .reset_index()
+    )
+
+    # Drop treatments where this feature had no usable z at all (all NA)
+    grp = grp[grp['valid_n'] > 0]
+
+    feature_counts.append({
+        'feature':  z[:-2],
+        'abnormal': int((grp['abn_any'] == True).sum()),
+        'normal':   int((grp['abn_any'] == False).sum()),
+    })
+
+feature_status_df = pd.DataFrame(feature_counts)
+feature_status_df
+
+
+# 1) Which features to score? (columns 11 onward)
+feature_cols = real.columns[11:]
+
+results_gen_z = []
+
+# 2) Loop over each synthetic‐control block (compound, targetTime)
+for (gen_cmpd, gen_time), gen_ctrl_group in gen.groupby(['COMPOUND_NAME','targetTime']):
+    # need at least two control samples to compute an SD
+    if gen_ctrl_group.shape[0] < 2:
+        continue
+
+    # 2a) compute control means & SDs for this compound/time
+    ctrl_means = gen_ctrl_group[feature_cols].mean()
+    ctrl_sds   = gen_ctrl_group[feature_cols].std(ddof=1)
+
+    # 3) for each treatment dose (Low, Middle, High)
+    for real_dose in ['High']:
+        real_treat = real.loc[
+            (real['COMPOUND_NAME']    == gen_cmpd) &
+            (real['SACRIFICE_PERIOD'] == gen_time)   &
+            (real['DOSE_LEVEL']       == real_dose)
+        ]
+        if real_treat.empty:
+            continue
+
+        # 4) compute z‑scores for each individual sample
+        for _, sample in real_treat.iterrows():
+            rec = {
+                'compound':       gen_cmpd,
+                'time':           gen_time,
+                'dose':           real_dose,
+                'INDIVIDUAL_ID':  sample['INDIVIDUAL_ID']
+            }
+            for feat in feature_cols:
+                x     = sample[feat]
+                mu    = ctrl_means[feat]
+                sigma = ctrl_sds[feat]
+
+                # guard against zero or missing sd
+                if pd.isna(x) or pd.isna(mu) or pd.isna(sigma) or sigma == 0:
+                    rec[f'{feat}_z'] = np.nan
+                else:
+                    rec[f'{feat}_z'] = (x - mu) / sigma
+
+            results_gen_z.append(rec)
+
+# 5) assemble into a DataFrame
+results_gen_z_df = pd.DataFrame(results_gen_z)
+
+# 1) Grouping keys
+keys = ['compound','time','dose']
+
+# 2) Build REAL-side valid counts per group/feature (counts non-NaN)
+z_cols_real = [c for c in results_df.columns if c.endswith('_z')]
+abs_real    = results_df[z_cols_real].abs()
+group_valid_real = abs_real.groupby([results_df[k] for k in keys], observed=True).count()  # index: groups, cols: features
+
+# 3) Build GEN-side max(|z|) and valid counts per group/feature
+z_cols_gen = [c for c in results_gen_z_df.columns if c.endswith('_z')]
+abs_gen    = results_gen_z_df[z_cols_gen].abs()
+group_max_gen   = abs_gen.groupby([results_gen_z_df[k] for k in keys], observed=True).max()
+group_valid_gen = abs_gen.groupby([results_gen_z_df[k] for k in keys], observed=True).count()
+
+# 4) Restrict to features present on BOTH sides
+common = [c for c in z_cols_gen if c in group_valid_real.columns]
+group_max_gen   = group_max_gen[common]
+group_valid_gen = group_valid_gen[common]
+
+# Align REAL valid counts to GEN's group index and common feature columns; fill missing with 0 valid
+group_valid_real = (
+    group_valid_real
+      .reindex(index=group_max_gen.index, fill_value=0)
+      .reindex(columns=common,        fill_value=0)
+)
+
+# 5) Threshold sweep; only include groups valid on BOTH sides
+records = []
+for thr in range(1, 21):
+    # A group/feature is eligible if real had ≥1 non-NaN AND gen had ≥1 non-NaN
+    valid_mask = (group_valid_real > 0) & (group_valid_gen > 0)
+
+    # Abnormal if max(|z|) > thr, but only where eligible
+    abn_mask = (group_max_gen > thr) & valid_mask
+
+    # Counts per feature
+    abn_counts  = abn_mask.sum(axis=0).astype(int)          # column-wise sums
+    total_valid = valid_mask.sum(axis=0).astype(int)
+    norm_counts = (total_valid - abn_counts).astype(int)
+
+    records.append(pd.DataFrame({
+        'feature':   [c[:-2] for c in common],  # strip "_z"
+        'threshold': thr,
+        'abnormal':  abn_counts.values,
+        'normal':    norm_counts.values,
+    }))
+
+feature_status_gen_df = pd.concat(records, ignore_index=True)
+
+feature_status_gen_df
+
+
+
+keys = ['compound','time','dose']
+
+# ===== Step 1: REAL flags at fixed threshold 2 (unchanged) =====
+z_cols_real = [c for c in results_df.columns if c.endswith('_z')]
+abs_real    = results_df[z_cols_real].abs()
+
+group_max_real   = abs_real.groupby([results_df[k] for k in keys], observed=True).max()
+group_valid_real = abs_real.groupby([results_df[k] for k in keys], observed=True).count()
+
+abn_real_df = (group_max_real > 2)
+abn_real_df = abn_real_df.where(group_valid_real > 0, np.nan)
+
+real_abn_long = (
+    abn_real_df.stack()
+               .rename('abn_real_any')
+               .reset_index()
+               .rename(columns={'level_3':'feature'})
+)
+real_valid_long = (
+    group_valid_real.stack()
+                    .rename('valid_n_real')
+                    .reset_index()
+                    .rename(columns={'level_3':'feature'})
+)
+real_flags_df = real_abn_long.merge(real_valid_long, on=keys+['feature'], how='left')
+real_flags_df['feature']      = real_flags_df['feature'].str.replace(r'_z$', '', regex=True)
+real_flags_df['abn_real_any'] = real_flags_df['abn_real_any'].astype('boolean')
+
+# ===== Step 2: GEN flags for thresholds 1..20 — count only REL-valid groups; keep GEN-NA as <NA> =====
+z_cols_gen = [c for c in results_gen_z_df.columns if c.endswith('_z')]
+abs_gen    = results_gen_z_df[z_cols_gen].abs()
+
+group_max_gen   = abs_gen.groupby([results_gen_z_df[k] for k in keys], observed=True).max()
+group_valid_gen = abs_gen.groupby([results_gen_z_df[k] for k in keys], observed=True).count()
+
+# restrict to features present on REAL side too
+common = [c for c in z_cols_gen if c in group_valid_real.columns]
+group_max_gen   = group_max_gen[common]
+group_valid_gen = group_valid_gen[common]
+
+# align REAL valid counts to GEN index/columns
+gvr_aligned = (
+    group_valid_real
+      .reindex(index=group_max_gen.index, fill_value=0)
+      .reindex(columns=common,        fill_value=0)
+)
+
+# long-form valid_n_gen but zeroed where REAL had no data
+group_valid_gen_eff = group_valid_gen.where(gvr_aligned > 0, 0)
+valid_gen_long = (
+    group_valid_gen_eff.stack()
+                       .rename('valid_n_gen')
+                       .reset_index()
+                       .rename(columns={'level_3': 'feature'})
+)
+valid_gen_long['feature'] = valid_gen_long['feature'].str.replace(r'_z$', '', regex=True)
+
+gen_frames = []
+for thr in range(1, 21):
+    # Eligible groups = REAL has ≥1 valid sample (only real validity enforced)
+    elig_real = (gvr_aligned > 0)
+
+    # Abnormal if max(|z|) > thr; set <NA> where GEN has no valid AND/OR REAL not eligible
+    abn_gen_df = (group_max_gen > thr)
+    abn_gen_df = abn_gen_df.where(elig_real & (group_valid_gen > 0), np.nan)
+
+    abn_gen_long = (
+        abn_gen_df.stack()
+                  .rename('abn_gen_any')
+                  .reset_index()
+                  .rename(columns={'level_3': 'feature'})
+    )
+    abn_gen_long['feature']     = abn_gen_long['feature'].str.replace(r'_z$', '', regex=True)
+    abn_gen_long['abn_gen_any'] = abn_gen_long['abn_gen_any'].astype('boolean')
+    abn_gen_long['threshold']   = thr
+
+    gen_frames.append(
+        abn_gen_long.merge(valid_gen_long, on=keys + ['feature'], how='left')
+    )
+
+gen_flags_df = pd.concat(gen_frames, ignore_index=True)
+
+# ── 3) Merge real vs gen; keep rows where REAL had ≥1 valid sample (GEN may be <NA>) ──
+merged = (
+    real_flags_df
+      .merge(gen_flags_df, on=['compound','time','dose','feature'], how='inner')
+      .query('valid_n_real > 0')   # only enforce real validity
+)
+
+# ── 4) Confusion per (feature, threshold), treating GEN NA as False ──
+confusion = []
+for (feat, thr), grp in merged.groupby(['feature','threshold']):
+    r = grp['abn_real_any'].astype(bool)
+    g = grp['abn_gen_any'].fillna(False).astype(bool)  # NA -> False
+
+    TP = int(( r &  g).sum())
+    TN = int((~r & ~g).sum())
+    FP = int((~r &  g).sum())
+    FN = int(( r & ~g).sum())
+
+    # optional: how many gen NAs we filled
+    na_filled = int(grp['abn_gen_any'].isna().sum())
+
+    confusion.append({
+        'feature':   feat,
+        'threshold': thr,
+        'TP': TP, 'TN': TN, 'FP': FP, 'FN': FN,
+        'na_filled_gen': na_filled,
+        'N_pairs': int(len(grp))
+    })
+
+confusion_df = pd.DataFrame(confusion)
+
+# assume confusion_df has columns ['feature','TP','TN','FP','FN']
+
+# 1) Compute total cases per feature
+confusion_df['total'] = (
+    confusion_df['TP'] +
+    confusion_df['TN'] +
+    confusion_df['FP'] +
+    confusion_df['FN']
+)
+
+# 2) Compute accuracy = (TP + TN) / total
+confusion_df['accuracy'] = (
+    (confusion_df['TP'] + confusion_df['TN']) /
+    confusion_df['total']
+)
+
+# 3) (Optional) drop the 'total' column if you don’t need it
+confusion_df = confusion_df.drop(columns=['total'])
+
+# pivot to wide form: rows = features, cols = thresholds
+accuracy_wide = confusion_df.pivot(
+    index='feature',
+    columns='threshold',
+    values='accuracy'
+)
+
+# rename the columns to accuracy_1, accuracy_2, … accuracy_20
+accuracy_wide.columns = [f'accuracy_{thr}' for thr in accuracy_wide.columns]
+
+# if you want ‘feature’ back as a column instead of the index:
+accuracy_wide = accuracy_wide.reset_index()
+
+# display
+accuracy_wide.to_csv('/account001/mansi.chandra/clin_path/train_concordance_threshold.csv', index=False)
+
+# 1) Find the index of the max-accuracy row within each feature
+idx = confusion_df.groupby('feature')['accuracy'].idxmax()
+
+# 2) Select those rows and rename for clarity
+best_per_feature = (
+    confusion_df
+      .loc[idx, ['feature','threshold','accuracy']]
+      .rename(columns={
+          'threshold' : 'best_threshold',
+          'accuracy'  : 'best_accuracy'
+      })
+      .reset_index(drop=True)
+)
+
+best_per_feature.to_csv('/account001/mansi.chandra/clin_path/best_per_feature.csv', index=False)
+
+
+
+
+
+
+
+
+

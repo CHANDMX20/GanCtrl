@@ -134,13 +134,13 @@ real_kidney <- real %>%
 
 # ---------- collapse generated (High-dose only now) ----------
 gen_liver_collapsed <- generated_liver %>%
-  select(any_of(c("COMPOUND_NAME","targetTime","INDIVIDUAL_ID", liver_features))) %>%
-  group_by(COMPOUND_NAME, targetTime, INDIVIDUAL_ID) %>%
+  select(any_of(c("COMPOUND_NAME","targetTime","targetBioCopy", liver_features))) %>%
+  group_by(COMPOUND_NAME, targetTime, targetBioCopy) %>%
   summarise(across(all_of(liver_features), ~ mean(.to_num(.x), na.rm = TRUE)), .groups = "drop")
 
 gen_kidney_collapsed <- generated_kidney %>%
-  select(any_of(c("COMPOUND_NAME","targetTime","INDIVIDUAL_ID", kidney_features))) %>%
-  group_by(COMPOUND_NAME, targetTime, INDIVIDUAL_ID) %>%
+  select(any_of(c("COMPOUND_NAME","targetTime","targetBioCopy", kidney_features))) %>%
+  group_by(COMPOUND_NAME, targetTime, targetBioCopy) %>%
   summarise(across(all_of(kidney_features), ~ mean(.to_num(.x), na.rm = TRUE)), .groups = "drop")
 
 

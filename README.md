@@ -50,5 +50,23 @@ This contains the core code for developing and training the **GanCtrl** framewor
 
 ---
 
+### Statistical Analysis
+
+Downstream scripts for checking how well synthetic controls agree with real controls.
+
+- `analysis/statistical_agreement.py` / `analysis/statistical_agreement.ipynb`  
+  Performs **quantitative agreement checks** between:
+  - Real control profiles and
+  - GanCtrl-generated synthetic controls (means and/or samples).
+
+Typical analyses included:
+
+- Per-analyte and per-timepoint metrics such as:
+  - **RMSE**, **MAE**, **Pearson correlation**, **cosine similarity**, etc.
+- Distribution-comparison tests between:
+  - Real control distributions and synthetic counterpart distributions.
+- Fold-wise and study-wise aggregation to summarize agreement across:
+  - **Organs/panels** (hepatic, renal, hematological, etc.)
+  - **Compounds**, **timepoints**, and **cross-validation splits**.
 
 

@@ -77,12 +77,9 @@ Scripts focusing on whether synthetic controls can substitute real controls for 
 
  - **z-Score Calculation**:  For each compound–time group and measurement, every treatment sample was standardized against each control source using a control-referenced z-score: $z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$
 
+ - **Concordance Accuracy**: Concordance accuracy was defined by cross-tabulating synthetic-control-referenced calls against real-referenced calls at the sample level into true positives (TP, abnormal under both), true negatives (TN, normal under both), false positives (FP, abnormal under GanCtrl but normal under real), and false negatives (FN, abnormal under real but normal under GanCtrl), and computed as:
+$ \text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN} $.
 
-
-  - **DEG Identification**: DEGs were defined as genes with an absolute fold change > 1 in both real and synthetic profiles. It is given by: ***DEG = |FoldChange| > 1***.
-    
-  - **DEG Overlap Calculation**: Measures the overlap between real and generated DEGs by comparing the intersection of both sets and normalizing by the total number of real DEGs.
-It is calculated as: ***Overlap = (DEGs_real ∩ DEGs_generated) / DEGs_real***
 
 **Files**:
 - [`real_fold.py`](./degs/real_fold.py) - Foldchange calculation script for real profiles.

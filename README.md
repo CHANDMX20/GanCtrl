@@ -11,7 +11,7 @@ GanCtrl is trained on high-dose treatment samples and couples a context-conditio
 - [Introduction](#introduction)
 - [Code Scripts](#code-scripts)
   - [GanCtrl Model Development, Training & Predictions](#ganctrl-model-development-training--predictions)
-  - [Statistical Agreement](#statistical-analysis)
+  - [Statistical Agreement](#statistical-agreement)
   - [Toxicity Assessment](#toxicity-assessment)
   - [Biological Significance](#biological-significance)
 - [Data Files](#data-files)

@@ -71,20 +71,26 @@ Downstream scripts for evaluating model performance i.e., how well do synthetic 
     
 ---
 
-### **[Toxicity Assessment]
+### **Toxicity Assessment**
 
-Scripts focusing on whether synthetic controls can substitute real controls for **toxicological decision-making**.
+Scripts focusing on whether synthetic controls can substitute real controls for **toxicological decision-making** i.e., it's ability to replicate toxicity outcomes. We do this by implementing concordance analysis comparing sample-level abnormal/normal classifications derived using real-control references versus synthetic-control references. 
 
-- `analysis/toxicity_assessment.py` / `analysis/toxicity_assessment.ipynb`  
-  Uses real vs synthetic controls to recompute standard toxicity calls, e.g.:
+ - **z-Score Calculation**:  For each compound–time group and measurement, every treatment sample was standardized against each control source using a control-referenced z-score:
+   $$
+z = \frac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}
+$$
 
-- **Elevation flags** for clinical chemistry / hematology markers:
-  - Threshold-based or ULN-based rules.
-- Classification of **treatment groups** as:
-  - Non-toxic / mild / moderate / severe for given organ systems.
-- Concordance metrics between:
-  - Decisions made using **real controls** and
-  - Decisions made using **synthetic controls** (e.g. % agreement per marker / timepoint / compound).
+
+  - **DEG Identification**: DEGs were defined as genes with an absolute fold change > 1 in both real and synthetic profiles. It is given by: ***DEG = |FoldChange| > 1***.
+    
+  - **DEG Overlap Calculation**: Measures the overlap between real and generated DEGs by comparing the intersection of both sets and normalizing by the total number of real DEGs.
+It is calculated as: ***Overlap = (DEGs_real ∩ DEGs_generated) / DEGs_real***
+
+**Files**:
+- [`real_fold.py`](./degs/real_fold.py) - Foldchange calculation script for real profiles.
+- [`gen_fold.py`](./degs/gen_fold.py) - Foldchange calculation script for generated profiles (to be used for both rat S1500+ and module genes with modifications in input).
+- [`real_deg.py`](./degs/real_deg.py) - DEG identification script for real profiles.
+
 
 This part of the pipeline is intended to answer:  
 > *“If I replace the concurrent control arm with GanCtrl-generated virtual controls, do I arrive at the same toxicological conclusions?”*

@@ -74,10 +74,7 @@ Downstream scripts for evaluating model performance i.e., how well do synthetic 
 ### **Toxicity Assessment**
 
 Scripts focusing on whether synthetic controls can substitute real controls for **toxicological decision-making** i.e., it's ability to replicate toxicity outcomes. We do this by implementing concordance analysis comparing sample-level abnormal/normal classifications derived using real-control references versus synthetic-control references. 
-We first perform concordance analysis on the **training set** to calibrate a z-score decision threshold, and then fix this threshold and apply it to the **held-out test set**. The resulting GanCtrl-based calls are benchmarked against:
-- **Inter-lab baselines** (cross-study comparisons), and  
-- **Intra-lab baselines** (within-study comparisons),
-to contextualize the performance of synthetic controls relative to biological and technical variability.
+We first perform concordance analysis on the **training set** to calibrate a z-score decision threshold, and then fix this threshold and apply it to the **held-out test set**. The resulting GanCtrl-based calls are benchmarked against **Inter-lab baselines** (cross-study comparisons), and **Intra-lab baselines** (within-study comparisons), to contextualize the performance of synthetic controls relative to biological and technical variability.
 
 - **z-Score Calculation**: For each compound–time group and measurement, every treatment sample was standardized against each control source using a control-referenced z-score:  
   $z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$
@@ -86,11 +83,11 @@ to contextualize the performance of synthetic controls relative to biological an
   $\text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN}$
 
 **Files**:
-- [`real_fold.py`](./degs/real_fold.py) - Foldchange calculation script for real profiles.
-- [`gen_fold.py`](./degs/gen_fold.py) - Foldchange calculation script for generated profiles (to be used for both rat S1500+ and module genes with modifications in input).
-- [`real_deg.py`](./degs/real_deg.py) - DEG identification script for real profiles.
-
+- [`interlab_concordance.py`](./baseline/interlab_concordance.py) - Script for concordance analysis for cross-study comparisons.
+- [`intralab_concordance.py`](./baseline/intralab_concordance.py) -Script for concordance analysis in within-study comparisons.
+- [`training_concordnace.py`](./evaluation/training_concordance.py) - Concordance analysis in the training set for threshold calibration.
+- [`test_concordance.py`](./evaluation/test_concordance.py) - Concordance analysis in the test set for evaluating the ability of synthetic controls in toxicity assessment.
 
 This part of the pipeline is intended to answer:  
-> *“If I replace the concurrent control arm with GanCtrl-generated virtual controls, do I arrive at the same toxicological conclusions?”*
+> *“If I replace the concurrent control arm with GanCtrl-generated synthetic controls, do I arrive at the same toxicological conclusions?”*
 

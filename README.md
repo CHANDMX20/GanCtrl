@@ -109,8 +109,8 @@ Scripts exploring whether GanCtrl preserves **biologically meaningful relationsh
 These analyses help validate that the model does more than fit marginal distributions; it also respects **multi-marker biological structure** and preserves biologically plausible co-response patterns.
 
 **Files**:
-- [`interlab_concordance.py`](./baseline/interlab_concordance.py) - Script for concordance analysis for cross-study comparisons.
-- [`intralab_concordance.py`](./baseline/intralab_concordance.py) -Script for concordance analysis in within-study comparisons.
+- [`biomarker_elevation.py`](./evaluation/biomarker_elevation.py) - Script for analyzing elevation calls in treated samples when compared with real and synthetic controls.
+- [`co_elevation.py`](./evaluation/co-elevation.py) -Script for assessing the coordinated multi-biomarker response patterns such as co-elevation trends between measurements.
 
 
 ---

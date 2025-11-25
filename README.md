@@ -81,8 +81,6 @@ Scripts focusing on whether synthetic controls can substitute real controls for 
 - **Concordance Accuracy**: Concordance accuracy was defined by cross-tabulating synthetic-control-referenced calls against real-referenced calls at the sample level into true positives (TP, abnormal under both), true negatives (TN, normal under both), false positives (FP, abnormal under GanCtrl but normal under real), and false negatives (FN, abnormal under real but normal under GanCtrl), and computed as:  
   $\text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN}$
 
-
-
 **Files**:
 - [`real_fold.py`](./degs/real_fold.py) - Foldchange calculation script for real profiles.
 - [`gen_fold.py`](./degs/gen_fold.py) - Foldchange calculation script for generated profiles (to be used for both rat S1500+ and module genes with modifications in input).

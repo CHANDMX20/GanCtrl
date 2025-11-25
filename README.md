@@ -117,7 +117,7 @@ These analyses help validate that the model does more than fit marginal distribu
 
 ## Data Files
 
-This repository expects preprocessed CSVs derived from **Open TG-GATEs**. The raw TG-GATEs data are *not* distributed here; you must obtain them separately and reproduce the preprocessing if needed.
+This repository expects preprocessed CSVs derived from **Open TG-GATEs**. The raw TG-GATEs data are *not* distributed here; you must obtain them separately and reproduce the preprocessing if needed from the official Open TG-GATEs repository **https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html**.
 
 Typical input files:
 

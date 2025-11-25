@@ -50,7 +50,7 @@ This contains the core code for developing and training the **GanCtrl** framewor
 
 ---
 
-### **[Statistical Analysis](./evaluation)**
+### **Statistical Agreement**
 
 Downstream scripts for evaluating model performance i.e., how well do synthetic controls agree with real controls. The performance of GanCtrl was assessed on the test set using two metrices: cosine similarity and root mean squared error (RMSE). Three baselines were derived from time-matched real controls:
 
@@ -71,5 +71,21 @@ Downstream scripts for evaluating model performance i.e., how well do synthetic 
     
 ---
 
+### **[Toxicity Assessment]
 
+Scripts focusing on whether synthetic controls can substitute real controls for **toxicological decision-making**.
+
+- `analysis/toxicity_assessment.py` / `analysis/toxicity_assessment.ipynb`  
+  Uses real vs synthetic controls to recompute standard toxicity calls, e.g.:
+
+- **Elevation flags** for clinical chemistry / hematology markers:
+  - Threshold-based or ULN-based rules.
+- Classification of **treatment groups** as:
+  - Non-toxic / mild / moderate / severe for given organ systems.
+- Concordance metrics between:
+  - Decisions made using **real controls** and
+  - Decisions made using **synthetic controls** (e.g. % agreement per marker / timepoint / compound).
+
+This part of the pipeline is intended to answer:  
+> *“If I replace the concurrent control arm with GanCtrl-generated virtual controls, do I arrive at the same toxicological conclusions?”*
 

@@ -152,8 +152,20 @@ Adjust paths and prefixes as needed for your environment.
 
 ## Installation
 
-1. **Clone the repository**
 
-   ```bash
-   git clone https://github.com/<your-username>/GanCtrl.git
-   cd GanCtrl
+### Prerequisites
+
+Before using this repository, ensure you have the following installed:
+- Python (version 3.11.7)
+- Tensorflow-GPU (version 2.4.1)
+- R (version 4.4.1)
+- Bioconductor (version 3.19)
+- Other packages specified in the code scripts
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---

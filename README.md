@@ -117,17 +117,18 @@ These analyses help validate that the model does more than fit marginal distribu
 
 ## Data Files
 
-This repository expects preprocessed CSVs derived from Open TG-GATEs. The raw TG-GATEs data are *not* distributed here; you must obtain them separately and reproduce the preprocessing if needed from the official Open TG-GATEs repository **https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html**.
+This repository expects preprocessed CSVs derived from Open TG-GATEs. The raw TG-GATEs data are *not* distributed here; you must obtain them separately and reproduce the preprocessing if needed from the official Open TG-GATEs repository:  
+[Open TG-GATEs download page](https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html).
 
 Typical input files:
 
-| Filepath                                       | Description                                                                                          |
-|-----------------------------------------------|------------------------------------------------------------------------------------------------------|
-| `repeat_train_control.csv`                | Training data with control profiles consisting clinical-pathology measurements and metadata.                |
-| `repeat_test_control.csv`                 | Test data with time-matched control profiles.                                                               |
-| `repeat_train_treatment.csv`              | Training data with treatment profiles, including high-dose arms used for modeling.   |
-| `repeat_test_treatment.csv`               | Test data with treatment profiles.                                                       |
-| `body_wt.csv`                                | Longitudinal body weight measurements with `PROGRESS_TIME`, used to derive latest BODY_WEIGHT per animal. |
+| Filepath                                                        | Description                                                                                          |
+|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| [`repeat_train_control.csv`](data/repeat_train_control.csv)     | Training data with control profiles consisting clinical-pathology measurements and metadata.        |
+| [`repeat_test_control.csv`](data/repeat_test_control.csv)       | Test data with time-matched control profiles.                                                       |
+| [`repeat_train_treatment.csv`](data/repeat_train_treatment.csv) | Training data with treatment profiles, including high-dose arms used for modeling.                  |
+| [`repeat_test_treatment.csv`](data/repeat_test_treatment.csv)   | Test data with treatment profiles.                                                                  |
+| [`body_wt.csv`](data/body_wt.csv)                               | Longitudinal body weight measurements with `PROGRESS_TIME`, used to derive latest BODY_WEIGHT per animal. |
 
 Key column expectations (used in the scripts):
 

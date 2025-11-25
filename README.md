@@ -50,7 +50,7 @@ This contains the core code for developing and training the **GanCtrl** framewor
 
 ---
 
-### **[Statistical Analysis](./evaluation)
+### **[Statistical Analysis](./evaluation)**
 
 Downstream scripts for evaluating model performance i.e., how well do synthetic controls agree with real controls. The performance of GanCtrl was assessed on the test set using two metrices: cosine similarity and root mean squared error (RMSE). Three baselines were derived from time-matched real controls:
 
@@ -62,10 +62,12 @@ Downstream scripts for evaluating model performance i.e., how well do synthetic 
  **Files**:
   - [`interlab_cosine.py`](./baseline/interlab_cosine.py) - Script for calculating the cosine similarity for the inter-lab baseline.
   - [`intralab_cosine.py`](./baseline/intralab_cosine.py) - Script for calculating the cosine similarity for the intra-lab baseline.
+  - [`replicate_control_cosine.py`](./baseline/replicate_control_cosine.py) - For calculating the cosine similarity for the replicate control baseline.
   - [`cosine.py`](./evaluation/cosine.py) - For calculating the cosine similarity for GanCtrl group (synthetic control profiles).
-  - [`.py`](./applications/mape.py) - For calculating the mape for AIVIVE group (generated profiles).
-  - [`rmse.py`](./applications/rmse.py) - For calculating the rmse for AIVIVE group (generated profiles).
-  - [`positive_control.py`](./applications/positive_control.py) - For calculating the metrics for positive control group.
+  - [`interlab_rmse.py`](./baseline/interlab_rmse.py) - Script for calculating the RMSE for the inter-lab baseline.
+  - [`intralab_rmse.py`](./baseline/intralab_rmse.py) - Script for calculating the RMSE for the intra-lab baseline.
+  - [`rmse.py`](./evaluation/rmse.py) - For calculating the rmse for GanCtrl group (synthetic control profiles).
+  - [`replicate_control_rmse.py`](./baseline/replicate_control_rmse.py) - For calculating the RMSE for the replicate control baseline.
     
 ---
 

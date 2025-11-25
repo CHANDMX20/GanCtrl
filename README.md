@@ -52,21 +52,22 @@ This contains the core code for developing and training the **GanCtrl** framewor
 
 ### **[Statistical Analysis](./evaluation)
 
-Downstream scripts for checking how well synthetic controls agree with real controls.
+Downstream scripts for evaluating model performance i.e., how well do synthetic controls agree with real controls. The performance of GanCtrl was assessed on the test set using two metrices: cosine similarity and root mean squared error (RMSE). Three baselines were derived from time-matched real controls:
 
-- `analysis/statistical_agreement.py` / `analysis/statistical_agreement.ipynb`  
-  Performs **quantitative agreement checks** between:
-  - Real control profiles and
-  - GanCtrl-generated synthetic controls (means and/or samples).
+- **Inter-laboratory Baseline** -  This group represents cross-study measurements (same vehicle, different laboratory)
+- **Intra-laboratory Baseline** - This group represents within-study measurements (same vehicle, same laboratory)
+- **Replicate Control** - Measurements were calculated between biological replicates within a treatment, providing a benchmark for real biological performance
+- **GanCtrl** - Measurements between each synthetic profile and its corresponding real control profile
 
-Typical analyses included:
+ **Files**:
+  - [`interlab_cosine.py`](./baseline/interlab_cosine.py) - Script for calculating the cosine similarity for the inter-lab baseline.
+  - [`intralab_cosine.py`](./baseline/intralab_cosine.py) - Script for calculating the cosine similarity for the intra-lab baseline.
+  - [`cosine.py`](./evaluation/cosine.py) - For calculating the cosine similarity for GanCtrl group (synthetic control profiles).
+  - [`.py`](./applications/mape.py) - For calculating the mape for AIVIVE group (generated profiles).
+  - [`rmse.py`](./applications/rmse.py) - For calculating the rmse for AIVIVE group (generated profiles).
+  - [`positive_control.py`](./applications/positive_control.py) - For calculating the metrics for positive control group.
+    
+---
 
-- Per-analyte and per-timepoint metrics such as:
-  - **RMSE**, **MAE**, **Pearson correlation**, **cosine similarity**, etc.
-- Distribution-comparison tests between:
-  - Real control distributions and synthetic counterpart distributions.
-- Fold-wise and study-wise aggregation to summarize agreement across:
-  - **Organs/panels** (hepatic, renal, hematological, etc.)
-  - **Compounds**, **timepoints**, and **cross-validation splits**.
 
 

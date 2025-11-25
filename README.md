@@ -50,7 +50,7 @@ This contains the core code for developing and training the **GanCtrl** framewor
 
 ---
 
-### Statistical Analysis
+### **[Statistical Analysis](./evaluation)
 
 Downstream scripts for checking how well synthetic controls agree with real controls.
 

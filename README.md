@@ -117,36 +117,33 @@ These analyses help validate that the model does more than fit marginal distribu
 
 ## Data Files
 
-This repository expects preprocessed CSVs derived from **Open TG-GATEs**. The raw TG-GATEs data are *not* distributed here; you must obtain them separately and reproduce the preprocessing if needed from the official Open TG-GATEs repository **https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html**.
+This repository expects preprocessed CSVs derived from Open TG-GATEs. The raw TG-GATEs data are *not* distributed here; you must obtain them separately and reproduce the preprocessing if needed from the official Open TG-GATEs repository **https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html**.
 
 Typical input files:
 
 | Filepath                                       | Description                                                                                          |
 |-----------------------------------------------|------------------------------------------------------------------------------------------------------|
-| `repeat_train_control_cvX.csv`                | Control animals for training (fold X), with clinical-pathology features and metadata.                |
-| `repeat_test_control_cvX.csv`                 | Control animals for testing (fold X).                                                                |
-| `repeat_train_treatment_cvX.csv`              | Treatment animals for training (fold X), including high-dose arms used for model fitting.           |
-| `repeat_test_treatment_cvX.csv`               | Treatment animals for testing (fold X).                                                             |
+| `repeat_train_control.csv`                | Training data with control profiles consisting clinical-pathology measurements and metadata.                |
+| `repeat_test_control.csv`                 | Test data with time-matched control profiles.                                                               |
+| `repeat_train_treatment.csv`              | Training data with treatment profiles, including high-dose arms used for modeling.   |
+| `repeat_test_treatment.csv`               | Test data with treatment profiles.                                                       |
 | `body_wt.csv`                                | Longitudinal body weight measurements with `PROGRESS_TIME`, used to derive latest BODY_WEIGHT per animal. |
 
 Key column expectations (used in the scripts):
 
 - **Metadata / keys**:
   - `COMPOUND_NAME`, `DOSE_LEVEL`, `SACRIFICE_PERIOD`, `EXP_ID`, `GROUP_ID`, `INDIVIDUAL_ID`, `ID`
-- **Outcome features** (38 panels, starting from column 11 in the CSV):
+- **Outcome features** (38 clinical pathology profiles)
   - Clinical chemistry & hematology markers (ALT, AST, ALP, LDH, TBIL, BUN, CRE, WBC, etc.).
-- **Body weight file (`body_wt.csv`)**:
-  - Must contain `_BW_KEYS`:
-    - `COMPOUND_NAME`, `DOSE_LEVEL`, `SACRIFICE_PERIOD`, `EXP_ID`, `GROUP_ID`, `INDIVIDUAL_ID`
-  - Plus `BODY_WEIGHT` and `PROGRESS_TIME`.
+  - Out of 38, nine are liver-specific (ALP, ALT, AST, GTP, LDH, TBIL, DBIL, RALB, TP) and seven are kidney-specific (BUN, CRE, Ca, Cl, Na, IP, K) as they known for their established relevance to hepatotoxicity and nephrotoxicity.
 
 Model outputs:
 
-- `results_vae_corr_mod3_cvX/model1/g_model1_*.h5` — Generator checkpoints  
-- `results_vae_corr_mod3_cvX/d_model1/d_model1_*.h5` — Discriminator checkpoints  
-- `results_vae_corr_mod3_cvX/composite_model1/composite_model1_*.h5` — Composite checkpoints  
-- `results_vae_corr_mod3_cvX/predictions_encoded/` — Encoded-space predictions (if enabled)  
-- `results_vae_corr_mod3_cvX/predictions_decoded/` — Fully decoded predictions (means + samples)  
+- `g_model1_*.h5` — Generator checkpoints  
+- `d_model1_*.h5` — Discriminator checkpoints  
+- `composite_model1_*.h5` — Composite checkpoints  
+- `predictions_encoded/` — Encoded-space predictions (if enabled)  
+- `predictions_decoded/` — Fully decoded predictions (means + samples)  
 
 Adjust paths and prefixes as needed for your environment.
 

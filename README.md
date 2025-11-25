@@ -74,6 +74,10 @@ Downstream scripts for evaluating model performance i.e., how well do synthetic 
 ### **Toxicity Assessment**
 
 Scripts focusing on whether synthetic controls can substitute real controls for **toxicological decision-making** i.e., it's ability to replicate toxicity outcomes. We do this by implementing concordance analysis comparing sample-level abnormal/normal classifications derived using real-control references versus synthetic-control references. 
+We first perform concordance analysis on the **training set** to calibrate a z-score decision threshold, and then fix this threshold and apply it to the **held-out test set**. The resulting GanCtrl-based calls are benchmarked against:
+- **Inter-lab baselines** (cross-study comparisons), and  
+- **Intra-lab baselines** (within-study comparisons),
+to contextualize the performance of synthetic controls relative to biological and technical variability.
 
 - **z-Score Calculation**: For each compound–time group and measurement, every treatment sample was standardized against each control source using a control-referenced z-score:  
   $z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$

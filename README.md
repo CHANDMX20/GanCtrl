@@ -91,3 +91,71 @@ We first perform concordance analysis on the **training set** to calibrate a z-s
 This part of the pipeline is intended to answer:  
 > *“If I replace the concurrent control arm with GanCtrl-generated synthetic controls, do I arrive at the same toxicological conclusions?”*
 
+---
+
+### **Biological Significance**
+
+Scripts exploring whether GanCtrl preserves **biologically meaningful relationships** among measurements (biomarkers). This module includes two complementary analyses—(a) **measurement-elevation consistency** and (b) **coordinated multi-measurement responses**.
+
+- **Measurement-elevation consistency** (single-measurement level):  
+  - Checks whether elevations observed in treated samples with real controls (e.g., ALT, CRE, TBIL) are consistently reproduced when using synthetic controls instead.
+  - Compares the direction and magnitude of shift when treatment compared to controls across compound-time groups.
+
+- **Coordinated multi-measurement responses** (co-elevation):  
+  - Checks whether biomarker co-regulation patterns are preserved when real controls are substituted with synthetic controls. 
+    - ALT–AST for hepatpocellular injury,
+    - BUN–CRE for renal function, etc.
+      
+These analyses help validate that the model does more than fit marginal distributions; it also respects **multi-marker biological structure** and preserves biologically plausible co-response patterns.
+
+**Files**:
+- [`interlab_concordance.py`](./baseline/interlab_concordance.py) - Script for concordance analysis for cross-study comparisons.
+- [`intralab_concordance.py`](./baseline/intralab_concordance.py) -Script for concordance analysis in within-study comparisons.
+
+
+---
+
+## Data Files
+
+This repository expects preprocessed CSVs derived from **Open TG-GATEs**. The raw TG-GATEs data are *not* distributed here; you must obtain them separately and reproduce the preprocessing if needed.
+
+Typical input files:
+
+| Filepath                                       | Description                                                                                          |
+|-----------------------------------------------|------------------------------------------------------------------------------------------------------|
+| `repeat_train_control_cvX.csv`                | Control animals for training (fold X), with clinical-pathology features and metadata.                |
+| `repeat_test_control_cvX.csv`                 | Control animals for testing (fold X).                                                                |
+| `repeat_train_treatment_cvX.csv`              | Treatment animals for training (fold X), including high-dose arms used for model fitting.           |
+| `repeat_test_treatment_cvX.csv`               | Treatment animals for testing (fold X).                                                             |
+| `body_wt.csv`                                | Longitudinal body weight measurements with `PROGRESS_TIME`, used to derive latest BODY_WEIGHT per animal. |
+
+Key column expectations (used in the scripts):
+
+- **Metadata / keys**:
+  - `COMPOUND_NAME`, `DOSE_LEVEL`, `SACRIFICE_PERIOD`, `EXP_ID`, `GROUP_ID`, `INDIVIDUAL_ID`, `ID`
+- **Outcome features** (38 panels, starting from column 11 in the CSV):
+  - Clinical chemistry & hematology markers (ALT, AST, ALP, LDH, TBIL, BUN, CRE, WBC, etc.).
+- **Body weight file (`body_wt.csv`)**:
+  - Must contain `_BW_KEYS`:
+    - `COMPOUND_NAME`, `DOSE_LEVEL`, `SACRIFICE_PERIOD`, `EXP_ID`, `GROUP_ID`, `INDIVIDUAL_ID`
+  - Plus `BODY_WEIGHT` and `PROGRESS_TIME`.
+
+Model outputs:
+
+- `results_vae_corr_mod3_cvX/model1/g_model1_*.h5` — Generator checkpoints  
+- `results_vae_corr_mod3_cvX/d_model1/d_model1_*.h5` — Discriminator checkpoints  
+- `results_vae_corr_mod3_cvX/composite_model1/composite_model1_*.h5` — Composite checkpoints  
+- `results_vae_corr_mod3_cvX/predictions_encoded/` — Encoded-space predictions (if enabled)  
+- `results_vae_corr_mod3_cvX/predictions_decoded/` — Fully decoded predictions (means + samples)  
+
+Adjust paths and prefixes as needed for your environment.
+
+---
+
+## Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/<your-username>/GanCtrl.git
+   cd GanCtrl

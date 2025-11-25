@@ -50,7 +50,7 @@ This contains the core code for developing and training the **GanCtrl** framewor
 
 ---
 
-### **[Statistical Analysis](./evaluation)**
+### **[Statistical Analysis]**
 
 Downstream scripts for evaluating model performance i.e., how well do synthetic controls agree with real controls. The performance of GanCtrl was assessed on the test set using two metrices: cosine similarity and root mean squared error (RMSE). Three baselines were derived from time-matched real controls:
 

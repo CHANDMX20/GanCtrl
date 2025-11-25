@@ -38,10 +38,17 @@ The implementation is designed for reproducibility (fixed seeds, deterministic T
 
 ## Code Scripts
 
-### **[Preprocessing](./preprocessing)**
+### **[GanCtrl Model Development, Training & Predictions](./training)**
 
-This folder contains the code and scripts for data preprocessing, specifically focusing on **RMA (Robust Multi-array Average) normalization** and **annotation** of gene expression data. These preprocessing steps are critical for preparing data before training the **AIVIVE** model.
+This contains the core code for developing and training the **GanCtrl** framework. It also includes the code for generating synthetic controls. 
 
 **Files**:
+- [`vitro_vivo_GAN.py`](./training/vitro_vivo_GAN.py) -
+-
+-
+- GAN-based translator framework script to train the **AIVIVE** model on the IVIVE dataset.
+- [`train_test_samples.py`](./training/train_test_samples.py) - Generating test set predictions using the optimal generator from the GAN-based translator
+- [`optim_neural_net_#.py`](./training/modules) - Local optimizer neural network frameworks for specific modules, where `#` refers to the module number (e.g., `optim_neural_net_18.py`, `optim_neural_net_20.py`, etc.). These scripts contain implementations for training different modules.
+- [`module_test_evals.py`](./training/modules/module_test_evals.py) - Generating test set predicitons for specific modules using the optimal local optimizers.
 
 

@@ -77,8 +77,7 @@ Scripts focusing on whether synthetic controls can substitute real controls for 
 
  - **z-Score Calculation**:  For each compound–time group and measurement, every treatment sample was standardized against each control source using a control-referenced z-score: $z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$
 
- - **Concordance Accuracy**: Concordance accuracy was defined by cross-tabulating synthetic-control-referenced calls against real-referenced calls at the sample level into true positives (TP, abnormal under both), true negatives (TN, normal under both), false positives (FP, abnormal under GanCtrl but normal under real), and false negatives (FN, abnormal under real but normal under GanCtrl), and computed as:
-$ \text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN} $.
+ - **Concordance Accuracy**: Concordance accuracy was defined by cross-tabulating synthetic-control-referenced calls against real-referenced calls at the sample level into true positives (TP, abnormal under both), true negatives (TN, normal under both), false positives (FP, abnormal under GanCtrl but normal under real), and false negatives (FN, abnormal under real but normal under GanCtrl), and computed as: $ \text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN} $.
 
 
 **Files**:

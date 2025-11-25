@@ -75,10 +75,8 @@ Downstream scripts for evaluating model performance i.e., how well do synthetic 
 
 Scripts focusing on whether synthetic controls can substitute real controls for **toxicological decision-making** i.e., it's ability to replicate toxicity outcomes. We do this by implementing concordance analysis comparing sample-level abnormal/normal classifications derived using real-control references versus synthetic-control references. 
 
- - **z-Score Calculation**:  For each compound–time group and measurement, every treatment sample was standardized against each control source using a control-referenced z-score:
-   $$
-z = \frac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}
-$$
+ - **z-Score Calculation**:  For each compound–time group and measurement, every treatment sample was standardized against each control source using a control-referenced z-score: $z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$
+
 
 
   - **DEG Identification**: DEGs were defined as genes with an absolute fold change > 1 in both real and synthetic profiles. It is given by: ***DEG = |FoldChange| > 1***.

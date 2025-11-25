@@ -85,7 +85,7 @@ We first perform concordance analysis on the **training set** to calibrate a z-s
 **Files**:
 - [`interlab_concordance.py`](./baseline/interlab_concordance.py) - Script for concordance analysis for cross-study comparisons.
 - [`intralab_concordance.py`](./baseline/intralab_concordance.py) -Script for concordance analysis in within-study comparisons.
-- [`training_concordnace.py`](./evaluation/training_concordance.py) - Concordance analysis in the training set for threshold calibration.
+- [`train_concordnace.py`](./evaluation/train_concordance.py) - Concordance analysis in the training set for threshold calibration.
 - [`test_concordance.py`](./evaluation/test_concordance.py) - Concordance analysis in the test set for evaluating the ability of synthetic controls in toxicity assessment.
 
 This part of the pipeline is intended to answer:  

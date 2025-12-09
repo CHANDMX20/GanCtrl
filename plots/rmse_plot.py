@@ -1,26 +1,79 @@
+# =============================================================================
+# RMSE Boxplot (Real vs Synthetic Controls vs Baselines)
+#
+# This script:
+#   1. Loads four RMSE distributions:
+#        - Inter-lab control baseline
+#        - Intra-lab control baseline
+#        - GanCtrl (synthetic control RMSE vs real)
+#        - Replicate control RMSE
+#   2. Combines them into a single long-format data frame.
+#   3. Draws a four-group boxplot:
+#        Inter-lab Control, Intra-lab Control, GanCtrl, Replicate Control
+#   4. Performs Welch t-tests (unadjusted p-values) for:
+#        - Inter-lab vs GanCtrl
+#        - Intra-lab vs GanCtrl
+#        - Replicate vs GanCtrl
+#   5. Adds three significance brackets with p-value labels.
+#   6. Automatically chooses y-limits so tails and brackets are not cut off,
+#      but y-axis tick labels are capped at 500 for readability.
+#   7. Writes a 600 dpi TIFF file.
+#
+# To use:
+#   - Edit the path_* variables below to point to your CSVs.
+#   - Edit out_dir if you want a different output folder.
+#   - Source this script and call save_rmse_boxplot_tif() or use the example.
+# =============================================================================
+
 library(dplyr)
 library(tidyr)
 library(tibble)
 library(ggplot2)
-library(ggpubr)    # compare_means + stat_pvalue_manual
-library(rstatix)   # (compare_means is also here; ggpubr re-exports)
+library(ggpubr)    # compare_means + stat_pvalue_manual (not used directly, but kept)
+library(rstatix)   # compare_means also here; ggpubr re-exports
 library(ggbeeswarm)
 
-interlab = read.csv('/account001/mansi.chandra/clin_path/baseline/interlab_rmse_overall.csv')
-intralab = read.csv('/account001/mansi.chandra/clin_path/baseline/intralab_rmse_overall.csv')
-generated = read.csv('/account001/mansi.chandra/clin_path/results_vae_corr_mod3_cv2/performance/rmse/test/generated_rmse_all_test.csv')
-replicate = read.csv('/account001/mansi.chandra/clin_path/positive_control/pc_rmse_overall.csv')
+# -----------------------------
+# Paths (EDIT FOR YOUR SETUP)
+# -----------------------------
+data_dir   <- "path/to/data"    # optional base dir, not required
+output_dir <- "path/to/results" # where TIFF will be saved
 
+# Individual CSV paths (use absolute or relative paths)
+path_interlab  <- file.path(data_dir, "interlab_rmse_overall.csv")
+path_intralab  <- file.path(data_dir, "intralab_rmse_overall.csv")
+path_generated <- file.path(data_dir, "generated_rmse_all_test.csv")
+path_replicate <- file.path(data_dir, "pc_rmse_overall.csv")
+
+# Ensure the output directory exists
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+}
+
+# -----------------------------
+# Load input RMSE data
+# -----------------------------
+interlab  <- read.csv(path_interlab)
+intralab  <- read.csv(path_intralab)
+generated <- read.csv(path_generated)
+replicate <- read.csv(path_replicate)
+
+# =============================================================================
+# Main plotting function: save_rmse_boxplot_tif
+#   - All internal logic unchanged; only default path is now generic.
+# =============================================================================
 save_rmse_boxplot_tif <- function(
-  tif_path      = "/account001/mansi.chandra/clin_path/results_plots_updated/rmse_boxplot_liver.tif",
+  tif_path      = file.path(output_dir, "rmse_boxplot_liver.tif"),
   tif_width_in  = 9.5,
   tif_height_in = 6.5,
   tif_res       = 600,
   height_factor = 1.6,
   main_title    = NULL   # kept for compatibility, but not used
 ) {
+  # Create the folder for this TIFF if needed
   dir.create(dirname(tif_path), recursive = TRUE, showWarnings = FALSE)
 
+  # Use Cairo if available for better font rendering; fall back otherwise
   dev_fun <- if ("cairo" %in% capabilities())
     function(...) tiff(type = "cairo", compression = "lzw", ...)
   else
@@ -36,6 +89,7 @@ save_rmse_boxplot_tif <- function(
   on.exit(dev.off(), add = TRUE)
 
   # ---------- helpers ----------
+  # Turn raw p-value into a compact label for plotting
   pad_p <- function(p) {
     if (is.na(p)) return("p = NA")
     if (p < 0.001) return("p < 0.05")
@@ -44,6 +98,7 @@ save_rmse_boxplot_tif <- function(
     paste0("p = ", signif(p, 3))
   }
 
+  # Draw one bracket between x1 and x2 at height y
   draw_bracket <- function(x1, x2, y, h, label,
                            lwd = 1.6, cex = 1.25, label_pad = 0, font = 2) {
     segments(x1, y, x2, y, lwd = lwd)
@@ -57,6 +112,7 @@ save_rmse_boxplot_tif <- function(
   group_levels <- c("Inter-lab Control", "Intra-lab Control", "GanCtrl", "Replicate Control")
   group_labels <- c("Inter-lab\nControl", "Intra-lab\nControl", "GanCtrl\n", "Replicate\nControl")
 
+  # Bind the four RMSE distributions into one data frame
   df <- rbind(
     data.frame(rmse = interlab$rmse,  group = "Inter-lab Control"),
     data.frame(rmse = intralab$rmse,  group = "Intra-lab Control"),
@@ -65,7 +121,7 @@ save_rmse_boxplot_tif <- function(
   )
   df$group <- factor(df$group, levels = group_levels)
 
-  # ---- NO TRIMMING: use full data ----
+  # One vector of RMSE values per group for boxplot() and t.test()
   plot_list <- lapply(group_levels, function(g) df$rmse[df$group == g])
 
   inter_vals <- df$rmse[df$group == "Inter-lab Control"]
@@ -81,6 +137,7 @@ save_rmse_boxplot_tif <- function(
   )
   labels <- vapply(p_vals, pad_p, character(1))
 
+  # Pre-compute boxplot stats to determine whiskers and y-limits
   bp_stats  <- boxplot(plot_list, plot = FALSE)
 
   # ---------- y-limits (so tails don't get cut) ----------
@@ -104,7 +161,7 @@ save_rmse_boxplot_tif <- function(
 
   bracket_top <- max(y_inter, y_intra, y_repl) + tip_height
 
-  # ensure space for data tails and brackets
+  # Extra padding below and above for aesthetics
   lower_pad   <- max(span_data * 0.02, 1e-4)
   upper_pad   <- max(span_data * 0.05, 1e-3)
 
@@ -134,21 +191,21 @@ save_rmse_boxplot_tif <- function(
 
   plot.new(); plot.window(xlim = xlim, ylim = ylim)
 
-  # no main title
-  # title(main = main_title, font.main = 2, cex.main = 1.6)
+  # We intentionally skip a main title; panel is self-contained via y-label & x-labels
 
-  # y-axis ticks: spaced by 50, but only up to 500; axis still extends above
+  # y-axis ticks: spaced by 50, but only up to 500; axis still extends above if needed
   tick_by    <- 50
   start_tick <- floor(ylim[1] / tick_by) * tick_by
   end_tick   <- ceiling(ylim[2] / tick_by) * tick_by
   yticks_all <- seq(start_tick, end_tick, by = tick_by)
-  yticks     <- yticks_all[yticks_all <= 500]   # clip ticks/labels at 500
+  yticks     <- yticks_all[yticks_all <= 500]   # clip labelled ticks at 500
 
   axis(2,
        at     = yticks,
        labels = sprintf("%.0f", yticks),
        las    = 1, lwd = 0, lwd.ticks = 1.2, tck = -0.015)
 
+  # Actual boxplots (no outliers drawn, heavier lines for medians)
   boxplot(
     plot_list,
     add       = TRUE,
@@ -168,6 +225,7 @@ save_rmse_boxplot_tif <- function(
 
   title(ylab = "RMSE", font.lab = 2)
 
+  # x-axis labels (two lines for Inter-/Intra-lab and Replicate)
   axis(1, at = at_pos, labels = FALSE, tick = FALSE)
   mtext(text = group_labels, side = 1, at = at_pos,
         line = 2.2, cex = 1.3, font = 1)
@@ -191,9 +249,8 @@ save_rmse_boxplot_tif <- function(
   invisible(tif_path)
 }
 
-# Example call (title is ignored)
-tif_out <- "/account001/mansi.chandra/clin_path/results_plots_updated/rmse_overall_test.tif"
+# -----------------------------
+# Example call (main_title argument is kept for compatibility, but ignored)
+# -----------------------------
+tif_out <- file.path(output_dir, "rmse_overall_test.tif")
 save_rmse_boxplot_tif(tif_path = tif_out, main_title = "Liver")
-
-
-

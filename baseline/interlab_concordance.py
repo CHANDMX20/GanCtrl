@@ -7,7 +7,7 @@ import scipy.stats as stats
 from scipy.stats import kstest, zscore
 
 data = pd.read_csv('/account001/mansi.chandra/clin_path/repeat_merged.csv')
-tgp = pd.read_csv('/account001/mansi.chandra/clin_path/baseline/Sample list_NCTR_09-06-2012.csv')
+tgp = pd.read_csv('/path/to/baseline/data')
 
 control = data[data['DOSE_LEVEL'] == 'Control']
 treatment = data[data['DOSE_LEVEL'] == 'High']

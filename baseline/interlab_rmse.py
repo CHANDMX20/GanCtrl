@@ -1,3 +1,26 @@
+"""
+Inter-lab RMSE analysis for control-only clinical pathology data.
+
+Pipeline overview
+-----------------
+1. Load per-animal control clinical pathology data from:
+   - A training split
+   - A test split
+2. Load baseline metadata table (e.g., treatment group info: Vehicle, Lab, etc.).
+3. Clean and normalize compound names in the metadata table.
+4. Merge metadata into the control data and reorder columns for readability.
+5. Prepare numeric feature matrices for the biomarker panel (e.g., 38 clinical-pathology features).
+6. For each sample, compute RMSE to samples from other labs and compounds,
+   matched by (SACRIFICE_PERIOD, Vehicle), using the full feature panel.
+7. Output a sample-level table of pairwise RMSE values for downstream analysis.
+
+Note:
+-----
+- Paths below are placeholders; update them to match your environment.
+- This script assumes certain column names exist:
+  COMPOUND_NAME, SACRIFICE_PERIOD, Vehicle/vehicle, Lab/lab, INDIVIDUAL_ID, etc.
+"""
+
 import sys
 
 import pandas as pd
@@ -12,39 +35,57 @@ import os
 from os import listdir
 from os.path import join, isfile
 
-test = pd.read_csv('/account001/mansi.chandra/clin_path/repeat_test_control_cv2.csv')
-train = pd.read_csv('/account001/mansi.chandra/clin_path/repeat_train_control_cv2.csv')
-tgp = pd.read_csv('/account001/mansi.chandra/clin_path/baseline/Sample list_NCTR_09-06-2012.csv')
+# =============================================================================
+# 0. FILE PATHS (UPDATE THESE FOR YOUR ENVIRONMENT)
+# =============================================================================
+
+CONTROL_TEST_FILE = "/path/to/clin_path/repeat_test_control_cv2.csv"
+CONTROL_TRAIN_FILE = "/path/to/clin_path/repeat_train_control_cv2.csv"
+BASELINE_META_FILE = "/path/to/baseline/metadata.csv"  # sample-level lab/treatment metadata
+
+# =============================================================================
+# 1. LOAD CONTROL DATA & BASELINE METADATA
+# =============================================================================
+
+test = pd.read_csv(CONTROL_TEST_FILE)
+train = pd.read_csv(CONTROL_TRAIN_FILE)
+tgp = pd.read_csv(BASELINE_META_FILE)
 
 control = pd.concat([test, train], ignore_index=True, sort=False)
 
-# change column named "old_name" to "lab"
+# =============================================================================
+# 2. CLEAN & NORMALIZE COMPOUND NAMES IN BASELINE METADATA (tgp)
+# =============================================================================
+
+# Standardize column names for lab and compound
 tgp = tgp.rename(columns={"Test Facility (in vivo animal treatment)": "Lab"})
 tgp = tgp.rename(columns={"Compound name (E)": "COMPOUND_NAME"})
 tgp = tgp.dropna()
-s = tgp['COMPOUND_NAME'].astype("string")
+
+s = tgp["COMPOUND_NAME"].astype("string")
 mask = s.notna()
-tgp.loc[mask, 'COMPOUND_NAME'] = s[mask].str.replace(
+tgp.loc[mask, "COMPOUND_NAME"] = s[mask].str.replace(
     r"^(\s*)(\S)", lambda m: m.group(1) + m.group(2).lower(), regex=True
 )
+
 tgp["COMPOUND_NAME"] = tgp["COMPOUND_NAME"].replace({
     "2-acetamidofluorene": "acetamidofluorene",
     "chlorpheniramine maleate": "chlorpheniramine",
     "clomipramine hydrochloride": "clomipramine",
     "danazol ": "danazol",
     "dantrolene sodium hemiheptahydrate": "dantrolene",
-    "diclofenac sodium salt" : "diclofenac",
-    "erythromycin" : "erythromycin ethylsuccinate",
-    "fultamide" : "flutamide",
-    "glybenclamide" : "glibenclamide",
-    "hydroxyzine dihydrochloride" : "hydroxyzine",
+    "diclofenac sodium salt": "diclofenac",
+    "erythromycin": "erythromycin ethylsuccinate",
+    "fultamide": "flutamide",
+    "glybenclamide": "glibenclamide",
+    "hydroxyzine dihydrochloride": "hydroxyzine",
     "labetalol hydrochloride": "labetalol",
-    "methapyrilene hydrochloride" : "methapyrilene",
-    "alpha-metyldopa":"methyldopa",
+    "methapyrilene hydrochloride": "methapyrilene",
+    "alpha-metyldopa": "methyldopa",
     "alpha-naphthylisothiocyanate": "naphthyl isothiocyanate",
-    "n-nitrosodiethylamine" : "nitrosodiethylamine",
-    "n-phenylanthranilic acid" : "phenylanthranilic acid",
-    "tacrine hydrochloride" : "tacrine",
+    "n-nitrosodiethylamine": "nitrosodiethylamine",
+    "n-phenylanthranilic acid": "phenylanthranilic acid",
+    "tacrine hydrochloride": "tacrine",
     "chlormadinone acetate": "chlormadinone",
     "enalapril maleate": "enalapril",
     "iproniazid phosphate salt": "iproniazid"
@@ -56,15 +97,14 @@ tgp_sub = (
     .drop_duplicates(subset=["COMPOUND_NAME"], keep="first")
 )
 
-
-# =========================
-# CONTROL: merge + reorder
-# =========================
+# =============================================================================
+# 3. CONTROL: MERGE METADATA & REORDER COLUMNS
+# =============================================================================
 
 # 1) Left-join on Compound name (many control rows to one tgp row per compound)
 control_new = control.merge(tgp_sub, on="COMPOUND_NAME", how="left", validate="m:1")
 
-# 3) Move 'vehicle' and 'lab' to the 12th position (1-based -> index 11)
+# 3) Move 'Vehicle' and 'Lab' to the 12th position (1-based -> index 11)
 cols = control_new.columns.tolist()
 for c in ["Vehicle", "Lab"]:
     if c in cols:
@@ -73,12 +113,11 @@ insert_at = min(11, len(cols))  # safe if there are <12 columns
 new_order = cols[:insert_at] + ["Vehicle", "Lab"] + cols[insert_at:]
 control_new = control_new[new_order]
 
-
-
 control_new = control_new.dropna()
 
-
-# ----------------- helpers -----------------
+# =============================================================================
+# 4. HELPERS FOR FEATURE PREP & RMSE CALCULATION
+# =============================================================================
 
 def _pick_col(df, candidates):
     for c in candidates:
@@ -90,7 +129,7 @@ def _prep_features(df, feature_cols):
     present = [c for c in feature_cols if c in df.columns]
     missing = [c for c in feature_cols if c not in df.columns]
     if missing:
-        print(f("[warn] Missing feature columns (skipped): {missing}"))
+        print(f"[warn] Missing feature columns (skipped): {missing}")
     if not present:
         raise ValueError("None of the requested feature columns are present in the dataframe.")
     out = df.copy()
@@ -218,23 +257,14 @@ def compute_rmse_all38_grouped_cmpd_time(
         df, feature_cols, "all38", outfile=outfile, id_col=id_col
     )
 
-# ------------ usage ------------
+# =============================================================================
+# 5. USAGE: COMPUTE & SAVE INTER-LAB RMSE
+# =============================================================================
 
-all38_rmse_csv = "/account001/mansi.chandra/clin_path/baseline/interlab_rmse_overall.csv"
+all38_rmse_csv = "interlab_rmse_overall.csv"
 
 all38_rmse_df = compute_rmse_all38_grouped_cmpd_time(
     control_new,
     outfile=all38_rmse_csv,
     id_col="INDIVIDUAL_ID",
 )
-
-
-
-
-
-
-
-
-
-
-

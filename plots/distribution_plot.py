@@ -109,8 +109,7 @@ filter_high_only <- function(df) {
 # ---------- feature lists (as you have) ----------
 liver_features <- c("ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
                     "GTP(IU/L)", "LDH(IU/L)",
-                    "TBIL(mg/dL)", "DBIL(mg/dL)",
-                    "RALB(g/dL)", "TP(g/dL)")
+                    "TBIL(mg/dL)", "DBIL(mg/dL)")
 
 kidney_features <- c("BUN(mg/dL)", "CRE(mg/dL)", "Ca(mg/dL)",
                      "Cl(meq/L)", "IP(mg/dL)", "K(meq/L)", "Na(meq/L)")

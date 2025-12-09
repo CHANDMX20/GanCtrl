@@ -38,8 +38,8 @@ tif_file <- file.path(out_dir, "liver_concordance_test.tif")
 
 selected_features <- c(
   "ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
-  "LDH(IU/L)", "RALB(g/dL)", "TBIL(mg/dL)", "DBIL(mg/dL)",
-  "GTP(IU/L)", "TP(g/dL)", "Average"
+  "LDH(IU/L)", "TBIL(mg/dL)", "DBIL(mg/dL)",
+  "GTP(IU/L)"
 )
 
 ## ========= 2) Helpers =========
@@ -177,7 +177,7 @@ plot_concordance <- function(mat, feature_order) {
 
 
 ## --- Apply order and labels ---
-ordered_features <- c("ALP", "ALT", "AST", "GTP", "LDH", "TBIL", "DBIL", "RALB", "TP", "Average")
+ordered_features <- c("ALP", "ALT", "AST", "GTP", "LDH", "DBIL", "TBIL")
 clean_names <- function(x) gsub("\\(.*?\\)", "", x)
 colnames(mat) <- clean_names(colnames(mat))
 mat <- mat[, ordered_features, drop = FALSE]
@@ -226,7 +226,7 @@ tif_file <- file.path(out_dir, "kidney_concordance_test.tif")
 
 selected_features <- c(
   "BUN(mg/dL)", "CRE(mg/dL)", "Ca(mg/dL)", "Cl(meq/L)",
-  "IP(mg/dL)", "K(meq/L)", "Na(meq/L)", "Average"
+  "IP(mg/dL)", "K(meq/L)", "Na(meq/L)"
 )
 
 ## ========= 2) Helpers =========
@@ -363,7 +363,7 @@ plot_concordance <- function(mat, feature_order) {
 
 
 ## --- Apply order and clean names ---
-ordered_features <- c("BUN", "CRE", "Ca", "Cl", "IP", "K", "Na", "Average")
+ordered_features <- c("BUN", "CRE", "Cl", "Ca", "K", "IP", "Na")
 clean_names <- function(x) gsub("\\(.*?\\)", "", x)
 colnames(mat) <- clean_names(colnames(mat))
 mat <- mat[, ordered_features, drop = FALSE]

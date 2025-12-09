@@ -1,17 +1,17 @@
 """
-Real vs Synthetic Control Cosine Similarity (Train Controls, High Dose Only)
+Real vs Synthetic Control Cosine Similarity (Controls, High Dose Only)
 ===========================================================================
 
 Purpose
 -------
-This script compares real train controls against synthetic controls generated
+This script compares real test controls against synthetic controls generated
 by a VAE/GAN-style model, using cosine similarity across a 38-biomarker panel.
 
 It does the following:
 
 1. Loads:
-   - real_control:  repeat_train_control_cv2.csv
-   - syn_control:   generated_predictions_merged_train.csv
+   - real_control:  repeat_test_control_cv2.csv
+   - syn_control:   generated_predictions_merged_test.csv
 
 2. Strictly filters synthetic rows to:
    DOSE_LEVEL == "High"
@@ -40,7 +40,7 @@ Paths & Assumptions
 
 Outputs
 -------
-- <BASE_OUTPUT_DIR>/performance/cosine/test/generated_cosine_all_train.csv
+- <BASE_OUTPUT_DIR>/performance/cosine/test/generated_cosine_all_test.csv
 
 """
 
@@ -56,10 +56,10 @@ from sklearn.metrics.pairwise import cosine_similarity  # <-- package cosine
 # 0. CONFIG: update these paths for your environment
 # =============================================================================
 
-REAL_CONTROL_FILE = "/path/to/repeat_train_control_cv2.csv"
+REAL_CONTROL_FILE = "/path/to/repeat_test_control_cv2.csv"
 SYN_CONTROL_FILE = (
     "/path/to/results_vae_corr_mod3_cv2/"
-    "predictions_decoded/test/generated_predictions_merged_train.csv"
+    "predictions_decoded/test/generated_predictions_merged_test.csv"
 )
 BASE_OUTPUT_DIR = "/path/to/results_vae_corr_mod3_cv2"
 
@@ -263,7 +263,7 @@ def compute_control_cosine_panel(
 cosine_path = join(BASE_OUTPUT_DIR, "performance", "cosine", "test")
 os.makedirs(cosine_path, exist_ok=True)
 
-all_out = join(cosine_path, "generated_cosine_all_train.csv")
+all_out = join(cosine_path, "generated_cosine_all_test.csv")
 
 all_df = compute_control_cosine_panel(
     real_control,

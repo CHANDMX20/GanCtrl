@@ -1,3 +1,26 @@
+"""
+Inter-lab cosine similarity analysis for control-only clinical pathology data.
+
+Pipeline overview
+-----------------
+1. Load per-animal control clinical pathology data from:
+   - A training split
+   - A test split
+2. Load baseline metadata table (e.g., treatment group info: Vehicle, Lab, etc.).
+3. Clean and normalize compound names in the metadata table.
+4. Merge metadata into the control data and reorder columns for readability.
+5. Prepare numeric feature matrices for the biomarker panel (e.g., 38 clinical-pathology features).
+6. Compute inter-lab cosine similarity for each sample, grouped by:
+   (COMPOUND_NAME, SACRIFICE_PERIOD, Vehicle), comparing across different labs and compounds.
+7. Output a sample-level table of pairwise cosine similarities for downstream analysis.
+
+Note:
+-----
+- Paths below are placeholders; update them to match your environment.
+- This script assumes certain column names exist:
+  COMPOUND_NAME, SACRIFICE_PERIOD, Vehicle/vehicle, Lab/lab, INDIVIDUAL_ID, etc.
+"""
+
 import sys
 
 import pandas as pd
@@ -13,38 +36,57 @@ import os
 from os import listdir
 from os.path import join, isfile
 
-test = pd.read_csv('/account001/mansi.chandra/clin_path/repeat_test_control_cv2.csv')
-train = pd.read_csv('/account001/mansi.chandra/clin_path/repeat_train_control_cv2.csv')
-tgp = pd.read_csv('/account001/mansi.chandra/clin_path/baseline/Sample list_NCTR_09-06-2012.csv')
+# =============================================================================
+# 0. FILE PATHS (UPDATE THESE FOR YOUR ENVIRONMENT)
+# =============================================================================
+
+CONTROL_TEST_FILE = "/path/to/clin_path/repeat_test_control_cv2.csv"
+CONTROL_TRAIN_FILE = "/path/to/clin_path/repeat_train_control_cv2.csv"
+BASELINE_META_FILE = "/path/to/baseline/metadata.csv"  # sample-level lab/treatment metadata
+
+# =============================================================================
+# 1. LOAD CONTROL DATA & BASELINE METADATA
+# =============================================================================
+
+test = pd.read_csv(CONTROL_TEST_FILE)
+train = pd.read_csv(CONTROL_TRAIN_FILE)
+tgp = pd.read_csv(BASELINE_META_FILE)
+
 control = pd.concat([test, train], ignore_index=True, sort=False)
 
-# change column named "old_name" to "lab"
+# =============================================================================
+# 2. CLEAN & NORMALIZE COMPOUND NAMES IN BASELINE METADATA (tgp)
+# =============================================================================
+
+# Standardize column names for lab and compound
 tgp = tgp.rename(columns={"Test Facility (in vivo animal treatment)": "Lab"})
 tgp = tgp.rename(columns={"Compound name (E)": "COMPOUND_NAME"})
 tgp = tgp.dropna()
-s = tgp['COMPOUND_NAME'].astype("string")
+
+s = tgp["COMPOUND_NAME"].astype("string")
 mask = s.notna()
-tgp.loc[mask, 'COMPOUND_NAME'] = s[mask].str.replace(
+tgp.loc[mask, "COMPOUND_NAME"] = s[mask].str.replace(
     r"^(\s*)(\S)", lambda m: m.group(1) + m.group(2).lower(), regex=True
 )
+
 tgp["COMPOUND_NAME"] = tgp["COMPOUND_NAME"].replace({
     "2-acetamidofluorene": "acetamidofluorene",
     "chlorpheniramine maleate": "chlorpheniramine",
     "clomipramine hydrochloride": "clomipramine",
     "danazol ": "danazol",
     "dantrolene sodium hemiheptahydrate": "dantrolene",
-    "diclofenac sodium salt" : "diclofenac",
-    "erythromycin" : "erythromycin ethylsuccinate",
-    "fultamide" : "flutamide",
-    "glybenclamide" : "glibenclamide",
-    "hydroxyzine dihydrochloride" : "hydroxyzine",
+    "diclofenac sodium salt": "diclofenac",
+    "erythromycin": "erythromycin ethylsuccinate",
+    "fultamide": "flutamide",
+    "glybenclamide": "glibenclamide",
+    "hydroxyzine dihydrochloride": "hydroxyzine",
     "labetalol hydrochloride": "labetalol",
-    "methapyrilene hydrochloride" : "methapyrilene",
-    "alpha-metyldopa":"methyldopa",
+    "methapyrilene hydrochloride": "methapyrilene",
+    "alpha-metyldopa": "methyldopa",
     "alpha-naphthylisothiocyanate": "naphthyl isothiocyanate",
-    "n-nitrosodiethylamine" : "nitrosodiethylamine",
-    "n-phenylanthranilic acid" : "phenylanthranilic acid",
-    "tacrine hydrochloride" : "tacrine",
+    "n-nitrosodiethylamine": "nitrosodiethylamine",
+    "n-phenylanthranilic acid": "phenylanthranilic acid",
+    "tacrine hydrochloride": "tacrine",
     "chlormadinone acetate": "chlormadinone",
     "enalapril maleate": "enalapril",
     "iproniazid phosphate salt": "iproniazid"
@@ -63,7 +105,7 @@ tgp_sub = (
 # 1) Left-join on Compound name (many control rows to one tgp row per compound)
 control_new = control.merge(tgp_sub, on="COMPOUND_NAME", how="left", validate="m:1")
 
-# 3) Move 'vehicle' and 'lab' to the 12th position (1-based -> index 11)
+# 3) Move 'Vehicle' and 'Lab' to the 12th position (1-based -> index 11)
 cols = control_new.columns.tolist()
 for c in ["Vehicle", "Lab"]:
     if c in cols:
@@ -73,10 +115,14 @@ new_order = cols[:insert_at] + ["Vehicle", "Lab"] + cols[insert_at:]
 control_new = control_new[new_order]
 control_new = control_new.dropna()
 
-# ---- No explicit organ panels now; we'll use all 38 biomarkers (cols[11:]) ----
+# ---- No explicit organ panels now; we'll use all 38 biomarkers (cols[13:]) ----
 
 LIVER_PANEL = []   # not used anymore
 KIDNEY_PANEL = []  # not used anymore
+
+# =============================================================================
+# 3. HELPER FUNCTIONS FOR FEATURE PREP & COSINE SIMILARITY
+# =============================================================================
 
 def _pick_col(df, candidates):
     for c in candidates:
@@ -110,6 +156,15 @@ def _numeric_matrix(df, cols):
 def _compute_cosine_grouped_by_cmpd_time_with_vehicle_lab(
     df, feature_cols, panel_name, outfile=None, id_col="INDIVIDUAL_ID"
 ):
+    """
+    Compute pairwise inter-lab cosine similarity within:
+        (COMPOUND_NAME, SACRIFICE_PERIOD, Vehicle).
+
+    For each anchor sample:
+      - Build a baseline pool of samples with the same time and vehicle.
+      - Restrict to different lab and different compound.
+      - Compute cosine similarity between the anchor and each valid target.
+    """
     # required keys
     comp_col = "COMPOUND_NAME"
     time_col = "SACRIFICE_PERIOD"
@@ -197,9 +252,9 @@ def compute_cosine_all38_grouped_cmpd_time(
 ):
     """
     Compute inter-lab cosine similarity using ALL 38 biomarkers together.
-    Assumes these are the columns after index 11 in df.
+    Assumes these are the columns after index 13 in df (df.columns[13:]).
     """
-    # 38-feature panel = all columns after index 11
+    # 38-feature panel = all columns after index 13
     feature_cols = list(df.columns[13:])
     print("[info] 38-feature panel (cols[13:]):")
     print(feature_cols)
@@ -221,11 +276,3 @@ all38_df = compute_cosine_all38_grouped_cmpd_time(
     all38_csv,
     id_col="INDIVIDUAL_ID"
 )
-
-
-
-
-
-
-
-

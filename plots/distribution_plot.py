@@ -246,12 +246,11 @@ plot_hist_grid <- function(real_df, gen_df, features, tiff_path,
 # Liver order (as you specified)
 liver_features <- c("ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
                     "GTP(IU/L)", "LDH(IU/L)",
-                    "TBIL(mg/dL)", "DBIL(mg/dL)",
-                    "RALB(g/dL)", "TP(g/dL)")
+                    "DBIL(mg/dL)", "TBIL(mg/dL)")
 
 # Kidney: 7 analytes
-kidney_features <- c("BUN(mg/dL)", "CRE(mg/dL)", "Ca(mg/dL)",
-                     "Cl(meq/L)", "IP(mg/dL)", "K(meq/L)", "Na(meq/L)")
+kidney_features <- c("BUN(mg/dL)", "CRE(mg/dL)", "Cl(meq/L)", "Ca(mg/dL)",
+                     "K(meq/L)", "IP(mg/dL)", "Na(meq/L)")
 
 # Save larger canvases; legends per subplot; last kidney plot centered
 out_dir <- "/account001/mansi.chandra/clin_path/results_plots_updated"

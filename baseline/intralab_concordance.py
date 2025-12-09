@@ -1,6 +1,5 @@
 """
-Abnormality scoring and agreement analysis for clinical pathology features
-(real vs intra-lab matched controls).
+Abnormality scoring and agreement analysis for clinical pathology features --> calculation of intra-laboratory baseline
 
 Pipeline overview
 -----------------

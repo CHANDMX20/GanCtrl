@@ -1,6 +1,6 @@
-# ***GanCtrl***: An AI-Based Pilot Study for Modeling Synthetic Controls from Treatment Data in Preclinical Toxicology
+# ***GanCtrl***: A Path Toward Reduced Animal Use Using AI-Generated Control Data from Treatment-Only Conditions in Toxicology
 
-**GanCtrl** (GAN-based synthetic control) is a conditional VAE–GAN model that translates treatment-derived clinical-pathology profiles into their time-matched control equivalents—synthetic controls using the Open TG-GATEs (Toxicogenomics Project-Genomics Assisted Toxicity Evaluation System) rat ***in vivo*** repeat-dose data across 38 clinical pathology measurements. 
+**GanCtrl** (GAN-based synthetic control) is a conditional VAE–GAN framework that translates treatment-derived clinical-pathology profiles into their time-matched control equivalents—synthetic controls using the Open TG-GATEs (Toxicogenomics Project-Genomics Assisted Toxicity Evaluation System) rat ***in vivo*** repeat-dose data across 38 clinical pathology measurements. 
 
 GanCtrl is trained on high-dose treatment samples and couples a context-conditioned encoder with an attention-aware, biologically informed decoder acting as the generator, together with a discriminator to generate physiologically coherent virtual controls.
 
@@ -13,7 +13,7 @@ GanCtrl is trained on high-dose treatment samples and couples a context-conditio
   - [GanCtrl Model Development, Training & Predictions](#ganctrl-model-development-training--predictions)
   - [Statistical Agreement](#statistical-agreement)
   - [Toxicity Assessment](#toxicity-assessment)
-  - [Biological Significance](#biological-significance)
+  - [Literature Validation](#literature-validation)
 - [Data Files](#data-files)
 - [Installation](#installation)
 - [License](#license)
@@ -93,12 +93,12 @@ This part of the pipeline is intended to answer:
 
 ---
 
-### **Biological Significance**
+### **Literature Validation**
 
-Scripts exploring whether GanCtrl preserves **biologically meaningful relationships** among measurements (biomarkers). This module includes two complementary analyses—(a) **measurement-elevation consistency** and (b) **coordinated multi-measurement responses**.
+Scripts exploring whether GanCtrl preserves **biologically meaningful relationships** among measurements (biomarkers). This validation examines both the consistency of individual measurement elevations and the preservation of coordinated multi-measurement responses (e.g., ALT–AST, BUN–CRE, ALT–AST–LDH) that are characteristic of hepatic and renal pathophysiology.
 
 - **Measurement-elevation consistency** (single-measurement level):  
-  - Checks whether elevations observed in treated samples with real controls (e.g., ALT, CRE, TBIL) are consistently reproduced when using synthetic controls instead.
+  - Checks whether elevations observed in treated samples with real controls (e.g., ALT, CRE) are consistently reproduced when using synthetic controls instead.
   - Compares the direction and magnitude of shift when treatment compared to controls across compound-time groups.
 
 - **Coordinated multi-measurement responses** (co-elevation):  

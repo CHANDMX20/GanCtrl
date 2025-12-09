@@ -1,5 +1,5 @@
 """
-Abnormality scoring and agreement analysis for clinical pathology features.
+Abnormality scoring and agreement analysis for clinical pathology features --> calculation of inter-laboratory baseline
 
 Pipeline overview
 -----------------

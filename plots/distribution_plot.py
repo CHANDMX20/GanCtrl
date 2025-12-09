@@ -1,23 +1,78 @@
+# =============================================================================
+# Histograms of Real vs Synthetic (GanCtrl) Controls — Liver & Kidney Panels
+# =============================================================================
+# Purpose
+# -------
+# This script:
+#   1. Loads:
+#        - Synthetic “control-equivalent” predictions for liver and kidney
+#        - Real control data (same study)
+#   2. Harmonizes numeric formats (rounding / integer casting) so that
+#      synthetic values align with the real reporting grids (e.g. AST as int).
+#   3. Filters the synthetic data to High dose only, using generic DOSE/DOSE_LEVEL
+#      logic that can handle either numeric doses or labelled dose levels.
+#   4. Collapses both real and synthetic data to:
+#        - Real: COMPOUND_NAME × SACRIFICE_PERIOD × INDIVIDUAL_ID
+#        - Syn : COMPOUND_NAME × targetTime × targetBioCopy
+#      and computes mean biomarker values per group.
+#   5. Draws per-feature histograms comparing:
+#        - Real controls vs GanCtrl synthetic controls
+#      for:
+#        - 7 liver biomarkers
+#        - 7 kidney biomarkers (in a 3×3 layout with the last one centred)
+#   6. Saves two high-resolution TIFFs for publication.
+#
+# Expected input columns
+# ----------------------
+# Real control file:
+#   - COMPOUND_NAME
+#   - SACRIFICE_PERIOD
+#   - INDIVIDUAL_ID
+#   - DOSE_LEVEL or DOSE_GROUP or DOSE (or similar)
+#   - Liver features:
+#       "ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
+#       "GTP(IU/L)", "LDH(IU/L)", "TBIL(mg/dL)", "DBIL(mg/dL)"
+#   - Kidney features:
+#       "BUN(mg/dL)", "CRE(mg/dL)", "Ca(mg/dL)",
+#       "Cl(meq/L)", "IP(mg/dL)", "K(meq/L)", "Na(meq/L)"
+#
+# Generated (synthetic) files:
+#   - COMPOUND_NAME
+#   - targetTime
+#   - targetBioCopy
+#   - DOSE_LEVEL or DOSE (for filtering High dose)
+#   - Same feature columns as above
+#
+# How to use
+# ----------
+# 1. Edit the three paths in the “inputs” section below.
+# 2. Edit `out_dir` (at the bottom) to your desired output directory.
+# 3. Source this script in R; it will produce two TIFFs:
+#      - hist_counts_liver_test.tif
+#      - hist_counts_kidney_test.tif
+# =============================================================================
+
 library(dplyr)
 library(ggplot2)
 library(ggpubr)
 library(ggh4x)
 
-
-
-## ---------- inputs ----------
-generated_path_liver <- "/account001/mansi.chandra/clin_path/results_vae_corr_mod3_cv2/predictions_decoded/test/generated_predictions_1161985_ControlGenerator_test.csv"
-generated_path_kidney <- "/account001/mansi.chandra/clin_path/results_vae_corr_mod3_cv2/predictions_decoded/test/generated_predictions_1507935_ControlGenerator_test.csv"
-real_path      <- "/account001/mansi.chandra/clin_path/repeat_test_control_cv2.csv"
-
+## ---------- inputs (EDIT THESE FOR YOUR ENV) ----------
+generated_path_liver  <- "path/to/generated_predictions_liver_test.csv"
+generated_path_kidney <- "path/to/generated_predictions_kidney_test.csv"
+real_path             <- "path/to/repeat_test_control.csv"
 
 ## ---------- read data ----------
-generated_liver <- read.csv(generated_path_liver, check.names = FALSE)
-generated_kidney <- read.csv(generated_path_kidney, check.names=FALSE)
-real      <- read.csv(real_path,      check.names = FALSE)
+generated_liver  <- read.csv(generated_path_liver,  check.names = FALSE)
+generated_kidney <- read.csv(generated_path_kidney, check.names = FALSE)
+real             <- read.csv(real_path,             check.names = FALSE)
 
+## =============================================================================
+## 1) Harmonize generated values (rounding / integer casting)
+##    This mirrors your Python postprocessing to match reporting resolution.
+## =============================================================================
 
-## helper: coerce to numeric, round, optionally cast to integer
+# helper: coerce to numeric, round, optionally cast to integer
 num_round <- function(df, col, digits = NULL, to_integer = FALSE) {
   if (!col %in% names(df)) return(df)
   v <- df[[col]]
@@ -31,22 +86,22 @@ num_round <- function(df, col, digits = NULL, to_integer = FALSE) {
 
 ## ---------- generated_liver ----------
 generated_liver <- num_round(generated_liver, "TBIL(mg/dL)", digits = 2)
-generated_liver <- num_round(generated_liver, "RALB(g/dL)", digits = 2)
-generated_liver <- num_round(generated_liver, "AST(IU/L)",  to_integer = TRUE)
-generated_liver <- num_round(generated_liver, "TP(g/dL)",   digits = 1)
+generated_liver <- num_round(generated_liver, "RALB(g/dL)",  digits = 2)
+generated_liver <- num_round(generated_liver, "AST(IU/L)",   to_integer = TRUE)
+generated_liver <- num_round(generated_liver, "TP(g/dL)",    digits = 1)
 #generated_liver <- num_round(generated_liver, "CRE(mg/dL)", digits = 1)
 generated_liver <- num_round(generated_liver, "DBIL(mg/dL)", digits = 2)
 generated_liver <- num_round(generated_liver, "BUN(mg/dL)",  to_integer = TRUE)
-#generated_liver <- num_round(generated_liver, "K(meq/L)",    digits = 2)
-#generated_liver <- num_round(generated_liver, "GTP(IU/L)",   to_integer = TRUE)
-#generated_liver <- num_round(generated_liver, "Ca(mg/dL)",   digits = 1)
-#generated_liver <- num_round(generated_liver, "Cl(meq/L)",   digits = 1)
-#generated_liver <- num_round(generated_liver, "Na(meq/L)",   digits = 1)
-#generated_liver <- num_round(generated_liver, "IP(mg/dL)",   digits = 1)
+#generated_liver <- num_round(generated_liver, "K(meq/L)",   digits = 2)
+#generated_liver <- num_round(generated_liver, "GTP(IU/L)",  to_integer = TRUE)
+#generated_liver <- num_round(generated_liver, "Ca(mg/dL)",  digits = 1)
+#generated_liver <- num_round(generated_liver, "Cl(meq/L)",  digits = 1)
+#generated_liver <- num_round(generated_liver, "Na(meq/L)",  digits = 1)
+#generated_liver <- num_round(generated_liver, "IP(mg/dL)",  digits = 1)
 generated_liver <- num_round(generated_liver, "ALP(IU/L)",   to_integer = TRUE)
 generated_liver <- num_round(generated_liver, "ALT(IU/L)",   to_integer = TRUE)
 generated_liver <- num_round(generated_liver, "LDH(IU/L)",   to_integer = TRUE)
-## final RALB at 1 decimal (matches your last line overriding to 1 dp)
+## final RALB at 1 decimal (matches your Python override)
 generated_liver <- num_round(generated_liver, "RALB(g/dL)",  digits = 1)
 
 ## ---------- generated_kidney ----------
@@ -57,20 +112,36 @@ generated_kidney <- num_round(generated_kidney, "TP(g/dL)",    digits = 1)
 #generated_kidney <- num_round(generated_kidney, "CRE(mg/dL)",  digits = 1)
 generated_kidney <- num_round(generated_kidney, "DBIL(mg/dL)", digits = 2)
 generated_kidney <- num_round(generated_kidney, "BUN(mg/dL)",  to_integer = TRUE)
-#generated_kidney <- num_round(generated_kidney, "K(meq/L)",    digits = 2)
-#generated_kidney <- num_round(generated_kidney, "GTP(IU/L)",   to_integer = TRUE)
-#generated_kidney <- num_round(generated_kidney, "Ca(mg/dL)",   digits = 1)
-#generated_kidney <- num_round(generated_kidney, "Cl(meq/L)",   digits = 1)
-#generated_kidney <- num_round(generated_kidney, "Na(meq/L)",   digits = 1)
-#generated_kidney <- num_round(generated_kidney, "IP(mg/dL)",   digits = 1)
+#generated_kidney <- num_round(generated_kidney, "K(meq/L)",   digits = 2)
+#generated_kidney <- num_round(generated_kidney, "GTP(IU/L)",  to_integer = TRUE)
+#generated_kidney <- num_round(generated_kidney, "Ca(mg/dL)",  digits = 1)
+#generated_kidney <- num_round(generated_kidney, "Cl(meq/L)",  digits = 1)
+#generated_kidney <- num_round(generated_kidney, "Na(meq/L)",  digits = 1)
+#generated_kidney <- num_round(generated_kidney, "IP(mg/dL)",  digits = 1)
 generated_kidney <- num_round(generated_kidney, "ALP(IU/L)",   to_integer = TRUE)
 generated_kidney <- num_round(generated_kidney, "ALT(IU/L)",   to_integer = TRUE)
 generated_kidney <- num_round(generated_kidney, "LDH(IU/L)",   to_integer = TRUE)
-## final RALB at 1 decimal (last override)
+## final RALB at 1 decimal
 generated_kidney <- num_round(generated_kidney, "RALB(g/dL)",  digits = 1)
 
+## =============================================================================
+## 2) Feature lists (biomarker panels)
+## =============================================================================
 
-# ---------- helpers ----------
+liver_features <- c("ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
+                    "GTP(IU/L)", "LDH(IU/L)",
+                    "TBIL(mg/dL)", "DBIL(mg/dL)")
+
+kidney_features <- c("BUN(mg/dL)", "CRE(mg/dL)", "Ca(mg/dL)",
+                     "Cl(meq/L)", "IP(mg/dL)", "K(meq/L)", "Na(meq/L)")
+
+.to_num <- function(x) suppressWarnings(as.numeric(as.character(x)))
+
+## =============================================================================
+## 3) Dose filtering — keep only “High” dose synthetic controls
+##    (generic logic: works with labelled or numeric dose columns)
+## =============================================================================
+
 normalize_dose <- function(x) tolower(trimws(as.character(x)))
 is_high_label  <- function(x) normalize_dose(x) %in%
   c("high","hi","top","max","highest","hd","h")
@@ -86,8 +157,8 @@ filter_high_only <- function(df) {
   dose_col <- pick_dose_col(df)
   if (!is.na(dose_col)) {
     if (dose_col == "DOSE") {
-      # Numeric DOSE: keep the highest dose within each compound × time × individual
-      # (falls back to simple max if INDIVIDUAL_ID/targetTime missing)
+      # Numeric DOSE: keep the highest dose within each group
+      # Grouping keys: fall back to full-frame max if keys are missing
       group_keys <- intersect(c("COMPOUND_NAME","targetTime","INDIVIDUAL_ID"), names(df))
       if (length(group_keys) == 0) {
         df %>% filter(.data[[dose_col]] == max(.data[[dose_col]], na.rm = TRUE))
@@ -98,7 +169,7 @@ filter_high_only <- function(df) {
           ungroup()
       }
     } else {
-      # Categorical DOSE_LEVEL/DOSE_GROUP: keep labels matching "high"
+      # Categorical DOSE_LEVEL/DOSE_GROUP: match High labels
       df %>% filter(is_high_label(.data[[dose_col]]))
     }
   } else {
@@ -106,21 +177,16 @@ filter_high_only <- function(df) {
     df
   }
 }
-# ---------- feature lists (as you have) ----------
-liver_features <- c("ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
-                    "GTP(IU/L)", "LDH(IU/L)",
-                    "TBIL(mg/dL)", "DBIL(mg/dL)")
-
-kidney_features <- c("BUN(mg/dL)", "CRE(mg/dL)", "Ca(mg/dL)",
-                     "Cl(meq/L)", "IP(mg/dL)", "K(meq/L)", "Na(meq/L)")
-
-.to_num <- function(x) suppressWarnings(as.numeric(as.character(x)))
 
 # ---------- FILTER: generated → only High dose ----------
 generated_liver  <- filter_high_only(generated_liver)
 generated_kidney <- filter_high_only(generated_kidney)
 
-# ---------- collapse real ----------
+## =============================================================================
+## 4) Collapse real & generated into per-group means
+## =============================================================================
+
+# Real: average per COMPOUND_NAME × SACRIFICE_PERIOD × INDIVIDUAL_ID
 real_liver <- real %>%
   select(any_of(c("COMPOUND_NAME","SACRIFICE_PERIOD","INDIVIDUAL_ID", liver_features))) %>%
   group_by(COMPOUND_NAME, SACRIFICE_PERIOD, INDIVIDUAL_ID) %>%
@@ -131,7 +197,7 @@ real_kidney <- real %>%
   group_by(COMPOUND_NAME, SACRIFICE_PERIOD, INDIVIDUAL_ID) %>%
   summarise(across(all_of(kidney_features), ~ mean(.to_num(.x), na.rm = TRUE)), .groups = "drop")
 
-# ---------- collapse generated (High-dose only now) ----------
+# Generated: average per COMPOUND_NAME × targetTime × targetBioCopy
 gen_liver_collapsed <- generated_liver %>%
   select(any_of(c("COMPOUND_NAME","targetTime","targetBioCopy", liver_features))) %>%
   group_by(COMPOUND_NAME, targetTime, targetBioCopy) %>%
@@ -142,22 +208,13 @@ gen_kidney_collapsed <- generated_kidney %>%
   group_by(COMPOUND_NAME, targetTime, targetBioCopy) %>%
   summarise(across(all_of(kidney_features), ~ mean(.to_num(.x), na.rm = TRUE)), .groups = "drop")
 
+## =============================================================================
+## 5) Plotting helpers — multi-panel histograms
+## =============================================================================
 
+## ---------- helpers for plotting ----------
 
-
-
-
-## ---------- helpers for plotting size, legend placement, and layout ----------
-
-# Pick a legend corner that’s least likely to overlap (simple, robust heuristic)
-.pick_legend_corner <- function(xr, xg) {
-  m_r <- median(xr, na.rm = TRUE); m_g <- median(xg, na.rm = TRUE)
-  m   <- median(c(xr, xg), na.rm = TRUE)
-  # If most of the mass is on the right, put legend on the left; else on right
-  if (mean(c(xr, xg) <= m, na.rm = TRUE) < 0.5) "topleft" else "topright"
-}
-
-# Single histogram panel (with compact legend in a smart corner)
+# (kept simple; legend is fixed in top-right of each panel)
 .hist_counts_panel <- function(real_df, gen_df, feat_name, bins = 25,
                                col_real_fill, col_real_line,
                                col_gen_fill,  col_gen_line) {
@@ -171,12 +228,15 @@ gen_kidney_collapsed <- generated_kidney %>%
     return(invisible())
   }
 
-  is_integerish <- function(x, tol = 1e-9)
-    { x <- x[is.finite(x)]; length(x) > 0 && all(abs(x - round(x)) < tol) }
+  is_integerish <- function(x, tol = 1e-9) {
+    x <- x[is.finite(x)]
+    length(x) > 0 && all(abs(x - round(x)) < tol)
+  }
 
+  # Choose binning: integer bins if data look integer-like, otherwise numeric
   if (is_integerish(xr) && is_integerish(xg)) {
-    br <- seq(floor(min(c(xr, xg), na.rm=TRUE)) - 0.5,
-              ceiling(max(c(xr, xg), na.rm=TRUE)) + 0.5, by = 1)
+    br <- seq(floor(min(c(xr, xg), na.rm = TRUE)) - 0.5,
+              ceiling(max(c(xr, xg), na.rm = TRUE)) + 0.5, by = 1)
   } else {
     rng <- range(c(xr, xg), finite = TRUE)
     if (!all(is.finite(rng)) || diff(rng) == 0) rng <- rng + c(-1, 1) * 1e-6
@@ -199,14 +259,15 @@ gen_kidney_collapsed <- generated_kidney %>%
 
   legend("topright",
          legend = c(sprintf("Real Control (n=%d)", sum(is.finite(xr))),
-                    sprintf("GanCtrl (n=%d)", sum(is.finite(xg)))),
+                    sprintf("GanCtrl (n=%d)",      sum(is.finite(xg)))),
          fill   = c(col_real_fill, col_gen_fill),
          border = c(col_real_line, col_gen_line),
          bty = "n", cex = 1.4, inset = 0.02, x.intersp = 0.7, y.intersp = 0.8)
 }
 
-
-# Multi-panel plotter with correct kidney layout and big readable legends
+# Multi-panel plotter with:
+#   - 3×3 grid for liver (7 panels + 2 empty if desired)
+#   - 3×3 custom layout for kidney (last panel centred)
 plot_hist_grid <- function(real_df, gen_df, features, tiff_path,
                            bins = 25, width_px = 9000, height_px = 7000) {
 
@@ -220,7 +281,7 @@ plot_hist_grid <- function(real_df, gen_df, features, tiff_path,
   par(family = "sans")
 
   if (length(features) == 7) {
-    ## Kidney: 7 panels → center last in bottom row, no NA or empty boxes
+    ## Kidney: 7 panels → centre last in bottom row
     layout_matrix <- matrix(c(1, 2, 3,
                               4, 5, 6,
                               0, 7, 0), nrow = 3, byrow = TRUE)
@@ -233,7 +294,7 @@ plot_hist_grid <- function(real_df, gen_df, features, tiff_path,
                          col_real_fill, col_real_line, col_gen_fill, col_gen_line)
     }
   } else {
-    ## Liver: full 3x3 grid
+    ## Liver: full 3×3 grid
     par(mfrow = c(3, 3), oma = c(0.5, 0.5, 0.5, 0.5), mar = c(4.3, 5, 3, 1.3))
     for (feat in features) {
       .hist_counts_panel(real_df, gen_df, feat, bins,
@@ -241,6 +302,10 @@ plot_hist_grid <- function(real_df, gen_df, features, tiff_path,
     }
   }
 }
+
+## =============================================================================
+## 6) Final calls: draw and save liver & kidney histograms
+## =============================================================================
 
 # Liver order (as you specified)
 liver_features <- c("ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
@@ -251,8 +316,8 @@ liver_features <- c("ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
 kidney_features <- c("BUN(mg/dL)", "CRE(mg/dL)", "Cl(meq/L)", "Ca(mg/dL)",
                      "K(meq/L)", "IP(mg/dL)", "Na(meq/L)")
 
-# Save larger canvases; legends per subplot; last kidney plot centered
-out_dir <- "/account001/mansi.chandra/clin_path/results_plots_updated"
+# Output directory (EDIT AS NEEDED)
+out_dir <- "path/to/results_plots"
 if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
 
 plot_hist_grid(real_liver,  gen_liver_collapsed,  liver_features,

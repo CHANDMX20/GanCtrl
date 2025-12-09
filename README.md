@@ -136,7 +136,7 @@ Key column expectations (used in the scripts):
   - `COMPOUND_NAME`, `DOSE_LEVEL`, `SACRIFICE_PERIOD`, `EXP_ID`, `GROUP_ID`, `INDIVIDUAL_ID`
 - **Outcome features** (38 clinical pathology profiles)
   - Clinical chemistry & hematology markers (ALT, AST, ALP, LDH, TBIL, BUN, CRE, WBC, etc.).
-  - Out of 38, nine are liver-specific (ALP, ALT, AST, GTP, LDH, TBIL, DBIL, RALB, TP) and seven are kidney-specific (BUN, CRE, Ca, Cl, Na, IP, K) as they known for their established relevance to hepatotoxicity and nephrotoxicity.
+  - Out of 38, seven are liver-specific (ALP, ALT, AST, GTP, LDH, TBIL, DBIL) and seven are kidney-specific (BUN, CRE, Ca, Cl, Na, IP, K) as they known for their established relevance to hepatotoxicity and nephrotoxicity.
 
 Model outputs:
 

@@ -16,8 +16,10 @@ Similarity stats for Real vs GanCtrl synthetic controls (Liver & Kidney panels)
 
 - Computes, per biomarker:
     * n_real, n_syn
-    * mean
+    * mean, median, sd
     * relative mean difference
+    * sd ratio (syn/real)
+    * KS statistic & p-value
     * Wasserstein distance (raw + normalized by IQR(real))
     * Jensen–Shannon divergence (0–1, log base 2)
 
@@ -32,6 +34,7 @@ import pandas as pd
 from scipy import stats
 
 
+
 # =============================================================================
 # 0) User-configurable paths
 # =============================================================================
@@ -44,24 +47,20 @@ real_path             = "/path/to/test_control.csv"
 out_dir = "/path/to/output/results_stats"
 os.makedirs(out_dir, exist_ok=True)
 
+
 # =============================================================================
 # 1) Helpers: numeric rounding, dose filtering, etc.
 # =============================================================================
 
 def num_round(df, col, digits=None, to_integer=False):
     """
-    Mimic the R num_round function:
-        - coerce to numeric
-        - round (digits or nearest int)
-        - optionally cast to integer
+    Coerce column to numeric, round, and optionally cast to integer (like R num_round).
     If column doesn't exist, returns df unchanged.
     """
     if col not in df.columns:
         return df
 
-    v = df[col]
-    # Convert factors/strings to numeric
-    x = pd.to_numeric(v, errors="coerce")
+    x = pd.to_numeric(df[col], errors="coerce")
 
     if digits is None:
         x = x.round()
@@ -70,6 +69,7 @@ def num_round(df, col, digits=None, to_integer=False):
 
     if to_integer:
         x = x.astype("Int64")  # nullable integer
+
     df[col] = x
     return df
 
@@ -108,22 +108,18 @@ def filter_high_only(df):
         print("[WARN] No DOSE/DOSE_LEVEL column found; skipping High-dose filter.")
         return df
 
-    # Try numeric or string based on dtype
     if dose_col == "DOSE":
         # Numeric DOSE: keep max dose within group
-        # Group keys: COMPOUND_NAME, targetTime, INDIVIDUAL_ID (if present)
         group_keys = [c for c in ["COMPOUND_NAME", "targetTime", "INDIVIDUAL_ID"]
                       if c in df.columns]
-
-        if len(group_keys) == 0:
-            # No grouping keys: just keep rows with max dose
-            max_dose = pd.to_numeric(df[dose_col], errors="coerce").max()
-            return df[pd.to_numeric(df[dose_col], errors="coerce") == max_dose]
-
         tmp = df.copy()
         tmp[dose_col] = pd.to_numeric(tmp[dose_col], errors="coerce")
 
-        # groupby and filter max within each group
+        if len(group_keys) == 0:
+            max_dose = tmp[dose_col].max()
+            out = tmp[tmp[dose_col] == max_dose]
+            return out.reset_index(drop=True)
+
         tmp["__dose_max__"] = tmp.groupby(group_keys)[dose_col].transform("max")
         out = tmp[tmp[dose_col] == tmp["__dose_max__"]].drop(columns="__dose_max__")
         return out.reset_index(drop=True)
@@ -137,7 +133,7 @@ def filter_high_only(df):
 
 
 def to_num_series(s):
-    """Helper: coerce to numeric, drop NAs later."""
+    """Helper: coerce to numeric."""
     return pd.to_numeric(s, errors="coerce")
 
 
@@ -149,7 +145,6 @@ print("Reading input CSVs...")
 generated_liver  = pd.read_csv(generated_path_liver)
 generated_kidney = pd.read_csv(generated_path_kidney)
 real             = pd.read_csv(real_path)
-
 
 # ---- Liver numeric harmonization ----
 for col, cfg in [
@@ -185,19 +180,6 @@ for col, cfg in [
 generated_kidney = num_round(generated_kidney, "RALB(g/dL)", digits=1, to_integer=False)
 
 
-# Feature lists (matches your R code order)
-liver_features = [
-    "ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
-    "GTP(IU/L)", "LDH(IU/L)",
-    "DBIL(mg/dL)", "TBIL(mg/dL)"
-]
-
-kidney_features = [
-    "BUN(mg/dL)", "CRE(mg/dL)", "Cl(meq/L)", "Ca(mg/dL)",
-    "K(meq/L)", "IP(mg/dL)", "Na(meq/L)"
-]
-
-
 # =============================================================================
 # 3) Filter generated to High dose only
 # =============================================================================
@@ -208,90 +190,60 @@ generated_kidney = filter_high_only(generated_kidney)
 
 
 # =============================================================================
-# 4) Collapse to per-group means (mirrors R)
+# 4) Build collapsed real_all and gen_all for *all* features
 # =============================================================================
 
-def collapse_real_liver(real_df):
-    cols = ["COMPOUND_NAME", "SACRIFICE_PERIOD", "INDIVIDUAL_ID"] + liver_features
-    cols_existing = [c for c in cols if c in real_df.columns]
-    df = real_df[cols_existing].copy()
+# All measurement columns in REAL: columns from index 11 onward
+raw_all_features = list(real.columns[11:])
 
-    group_cols = [c for c in ["COMPOUND_NAME", "SACRIFICE_PERIOD", "INDIVIDUAL_ID"]
-                  if c in df.columns]
-    if not group_cols:
-        raise ValueError("Real liver: required grouping columns not found.")
+# Only keep those that also appear in at least one synthetic file
+synthetic_cols = set(generated_liver.columns) | set(generated_kidney.columns)
+all_features = [c for c in raw_all_features if c in synthetic_cols]
 
-    for feat in liver_features:
-        if feat in df.columns:
-            df[feat] = to_num_series(df[feat])
+if not all_features:
+    raise ValueError("No overlapping measurement columns found between real and synthetic data.")
 
-    agg_dict = {feat: "mean" for feat in liver_features if feat in df.columns}
-    return df.groupby(group_cols, as_index=False).agg(agg_dict)
+print(f"Using {len(all_features)} measurement features (from real.columns[11:]):")
+print(all_features)
 
+# ---- Collapse REAL ----
+group_cols_real = [c for c in ["COMPOUND_NAME", "SACRIFICE_PERIOD", "INDIVIDUAL_ID"]
+                   if c in real.columns]
+if not group_cols_real:
+    raise ValueError("Real data is missing required grouping columns "
+                     "(COMPOUND_NAME/SACRIFICE_PERIOD/INDIVIDUAL_ID).")
 
-def collapse_real_kidney(real_df):
-    cols = ["COMPOUND_NAME", "SACRIFICE_PERIOD", "INDIVIDUAL_ID"] + kidney_features
-    cols_existing = [c for c in cols if c in real_df.columns]
-    df = real_df[cols_existing].copy()
+real_all = real[group_cols_real + all_features].copy()
+for feat in all_features:
+    real_all[feat] = to_num_series(real_all[feat])
 
-    group_cols = [c for c in ["COMPOUND_NAME", "SACRIFICE_PERIOD", "INDIVIDUAL_ID"]
-                  if c in df.columns]
-    if not group_cols:
-        raise ValueError("Real kidney: required grouping columns not found.")
+agg_real = {feat: "mean" for feat in all_features}
+real_all = real_all.groupby(group_cols_real, as_index=False).agg(agg_real)
 
-    for feat in kidney_features:
-        if feat in df.columns:
-            df[feat] = to_num_series(df[feat])
+print(f"Collapsed real_all shape: {real_all.shape}")
 
-    agg_dict = {feat: "mean" for feat in kidney_features if feat in df.columns}
-    return df.groupby(group_cols, as_index=False).agg(agg_dict)
+# ---- Collapse SYNTHETIC (combine liver + kidney, then group) ----
+gen_all_raw = pd.concat([generated_liver, generated_kidney],
+                        ignore_index=True, sort=False)
 
+group_cols_syn = [c for c in ["COMPOUND_NAME", "targetTime", "targetBioCopy"]
+                  if c in gen_all_raw.columns]
+if not group_cols_syn:
+    raise ValueError("Synthetic data is missing required grouping columns "
+                     "(COMPOUND_NAME/targetTime/targetBioCopy).")
 
-def collapse_generated_liver(gen_df):
-    cols = ["COMPOUND_NAME", "targetTime", "targetBioCopy"] + liver_features
-    cols_existing = [c for c in cols if c in gen_df.columns]
-    df = gen_df[cols_existing].copy()
+gen_all = gen_all_raw[group_cols_syn + all_features].copy()
+for feat in all_features:
+    gen_all[feat] = to_num_series(gen_all[feat])
 
-    group_cols = [c for c in ["COMPOUND_NAME", "targetTime", "targetBioCopy"]
-                  if c in df.columns]
-    if not group_cols:
-        raise ValueError("Generated liver: required grouping columns not found.")
+agg_syn = {feat: "mean" for feat in all_features}
+gen_all = gen_all.groupby(group_cols_syn, as_index=False).agg(agg_syn)
 
-    for feat in liver_features:
-        if feat in df.columns:
-            df[feat] = to_num_series(df[feat])
-
-    agg_dict = {feat: "mean" for feat in liver_features if feat in df.columns}
-    return df.groupby(group_cols, as_index=False).agg(agg_dict)
-
-
-def collapse_generated_kidney(gen_df):
-    cols = ["COMPOUND_NAME", "targetTime", "targetBioCopy"] + kidney_features
-    cols_existing = [c for c in cols if c in gen_df.columns]
-    df = gen_df[cols_existing].copy()
-
-    group_cols = [c for c in ["COMPOUND_NAME", "targetTime", "targetBioCopy"]
-                  if c in df.columns]
-    if not group_cols:
-        raise ValueError("Generated kidney: required grouping columns not found.")
-
-    for feat in kidney_features:
-        if feat in df.columns:
-            df[feat] = to_num_series(df[feat])
-
-    agg_dict = {feat: "mean" for feat in kidney_features if feat in df.columns}
-    return df.groupby(group_cols, as_index=False).agg(agg_dict)
-
-
-print("Collapsing to per-group means...")
-real_liver  = collapse_real_liver(real)
-real_kidney = collapse_real_kidney(real)
-gen_liver_collapsed  = collapse_generated_liver(generated_liver)
-gen_kidney_collapsed = collapse_generated_kidney(generated_kidney)
+print(f"Collapsed gen_all shape: {gen_all.shape}")
 
 
 # =============================================================================
-# 5) Jensen–Shannon divergence helper
+# 5) Jensen–Shannon divergence helper (robust)
 # =============================================================================
 
 def jensen_shannon_from_samples(x_real, x_syn, n_bins=25, base=2):
@@ -342,27 +294,32 @@ def jensen_shannon_from_samples(x_real, x_syn, n_bins=25, base=2):
     jsd = 0.5 * (kl_pm + kl_qm)
     return float(jsd)
 
+
 # =============================================================================
-# 6) Core comparison function (stats only, no plots)
+# 6) Core comparison function (all features, no Wasserstein)
 # =============================================================================
 
-def compare_distributions(real_df, syn_df, features,
-                          label_real="Real", label_syn="GanCtrl",
-                          jsd_bins=25):
+def compare_distributions(
+    real_df,
+    syn_df,
+    all_features,
+    label_real="Real",
+    label_syn="GanCtrl",
+    jsd_bins=25,
+):
     """
-    For each feature in `features`, compute:
+    For each feature in `all_features`, compute:
 
       - n_real, n_syn
       - mean_real, mean_syn
       - relative mean difference: (mean_syn - mean_real) / mean_real
-      - Wasserstein distance (raw, and normalized by IQR(real))
-      - Jensen–Shannon divergence (0–1, base-2 log)
+      - js_divergence_log2 (Jensen–Shannon, base 2)
 
-    No SDs, medians, or KS stats.
+    No Wasserstein, no SDs, no KS.
     """
     rows = []
 
-    for feat in features:
+    for feat in all_features:
         if feat not in real_df.columns or feat not in syn_df.columns:
             print(f"[WARN] {feat} not found in both real & synthetic; skipping.")
             continue
@@ -386,13 +343,7 @@ def compare_distributions(real_df, syn_df, features,
         else:
             rel_mean_diff = np.nan
 
-        # Wasserstein distance
-        w_raw = stats.wasserstein_distance(xr, xs)
-        q25, q75 = xr.quantile([0.25, 0.75])
-        iqr = q75 - q25
-        w_norm = w_raw / iqr if iqr > 0 else np.nan
-
-        # Jensen–Shannon divergence (histogram-based)
+        # Jensen–Shannon
         jsd = jensen_shannon_from_samples(xr, xs,
                                           n_bins=jsd_bins, base=2)
 
@@ -403,34 +354,35 @@ def compare_distributions(real_df, syn_df, features,
             f"{label_real}_mean": mean_r,
             f"{label_syn}_mean": mean_s,
             "rel_mean_diff": rel_mean_diff,
-            "wasserstein_raw": w_raw,
-            "wasserstein_norm_IQR": w_norm,
-            "js_divergence_log2": jsd
+            "js_divergence_log2": jsd,
         })
 
     summary = pd.DataFrame(rows)
     if not summary.empty:
-        summary = summary.sort_values("js_divergence_log2")
+        summary = summary.sort_values(
+            ["js_divergence_log2", "feature"],
+            na_position="last"
+        )
     return summary.reset_index(drop=True)
+
 
 # =============================================================================
 # 7) Run comparisons and write results
 # =============================================================================
 
 if __name__ == "__main__":
-    print("Computing similarity stats for liver panel...")
-    liver_stats = compare_distributions(real_liver, gen_liver_collapsed, liver_features)
-    liver_out_path = os.path.join(out_dir, "similarity_stats_liver.csv")
-    liver_stats.to_csv(liver_out_path, index=False)
-    print(f"Liver stats saved to: {liver_out_path}")
-    print(liver_stats)
+    print("Computing similarity stats for all features (means + rel diff + JSD)...")
+    all_stats = compare_distributions(
+        real_df=real_all,
+        syn_df=gen_all,
+        all_features=all_features,
+        label_real="Real",
+        label_syn="GanCtrl",
+        jsd_bins=25,
+    )
 
-    print("\nComputing similarity stats for kidney panel...")
-    kidney_stats = compare_distributions(real_kidney, gen_kidney_collapsed, kidney_features)
-    kidney_out_path = os.path.join(out_dir, "similarity_stats_kidney.csv")
-    kidney_stats.to_csv(kidney_out_path, index=False)
-    print(f"Kidney stats saved to: {kidney_out_path}")
-    print(kidney_stats)
-
-    print("\nDone.")
+    out_path = os.path.join(out_dir, "similarity_stats_all_features.csv")
+    all_stats.to_csv(out_path, index=False)
+    print(f"Saved stats to: {out_path}")
+    print(all_stats)
 

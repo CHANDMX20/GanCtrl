@@ -1,6 +1,6 @@
 # ***GanCtrl***: A Path Toward Reduced Animal Use Using AI-Generated Control Data from Treatment-Only Conditions in Toxicology
 
-**GanCtrl** (GAN-based synthetic control) is a conditional VAE–GAN framework that translates treatment-derived clinical-pathology profiles into their time-matched control equivalents—synthetic controls using the Open TG-GATEs (Toxicogenomics Project-Genomics Assisted Toxicity Evaluation System) rat ***in vivo*** repeat-dose data across 38 clinical pathology measurements. 
+*GanCtrl* (GAN-based synthetic control) is a conditional VAE–GAN framework that translates treatment-derived clinical-pathology profiles into their time-matched control equivalents—synthetic controls using the Open TG-GATEs (Toxicogenomics Project-Genomics Assisted Toxicity Evaluation System) rat *in vivo* repeat-dose data across 38 clinical pathology measurements. 
 
 GanCtrl is trained on high-dose treatment samples and couples a context-conditioned encoder with an attention-aware, biologically informed decoder acting as the generator, together with a discriminator to generate physiologically coherent virtual controls.
 
@@ -147,6 +147,8 @@ Model outputs:
 - `predictions_decoded/` — Fully decoded predictions (means + samples)  
 
 Adjust paths and prefixes as needed for your environment.
+
+> *The training and test synthetic controls for liver- and kidney-specific checkpoints are deposited and made available on zenodo. These files can be used directly for any kind of downstream analysis and evaluations.*
 
 ---
 

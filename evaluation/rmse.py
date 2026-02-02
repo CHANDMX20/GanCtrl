@@ -52,12 +52,13 @@ from sklearn.metrics import mean_squared_error  # <-- use RMSE based on MSE
 # -----------------------------
 # Real test controls (per-animal clinical pathology for control dose)
 real_control = pd.read_csv(
-    "/path/to/repeat_test_control_cv2.csv"
+    "/path/to/repeat_test_control_2d.csv"
 )
+real_control = pd.concat([real_control.iloc[:, :11], real_control.iloc[:, 1368:]], axis=1)
 
 # Synthetic “control-equivalent” predictions for the same (or similar) animals
 syn_control = pd.read_csv(
-    "/path/to/results_vae_corr_mod3_cv2/"
+    "/path/to/results/"
     "predictions_decoded/test/generated_predictions_merged_test.csv"
 )
 
@@ -244,7 +245,7 @@ def compute_control_rmse_panel(real: pd.DataFrame, syn: pd.DataFrame, panel_cols
 # Output paths (UPDATE BASE PATH)
 # -----------------------------
 # Base directory for all model outputs / metrics
-base_path = "/path/to/results_vae_corr_mod3_cv2"
+base_path = "/path/to/results"
 
 # Subfolder where RMSE outputs will be stored
 rmse_path = join(base_path, "performance", "rmse", "test")

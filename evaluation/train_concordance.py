@@ -77,8 +77,6 @@ real = pd.concat([control, treatment], ignore_index=True, sort=False)
 # 2. Harmonize generated analytes to match real reporting precision
 # =============================================================================
 
-#optimizing the prediction values to be consistent with real 
-
 #gen["TBIL(mg/dL)"] = pd.to_numeric(gen["TBIL(mg/dL)"], errors="coerce").round(2)
 gen["RALB(g/dL)"] = pd.to_numeric(gen["RALB(g/dL)"], errors="coerce").round(2)
 gen["AST(IU/L)"] = pd.to_numeric(gen["AST(IU/L)"], errors="coerce").round().astype(int)

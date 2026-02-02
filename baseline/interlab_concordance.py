@@ -29,14 +29,18 @@ import numpy as np
 # 0. FILE PATHS (UPDATE THESE FOR YOUR ENVIRONMENT)
 # =============================================================================
 
-CLIN_PATH_FILE = "/path/to/clin_path/repeat_merged.csv"
+control_test = "path/to/clin_path/repeat_test_control_2d.csv"
+control_train = "/path/to/clin_path/repeat_train_control_2d.csv"
+treatment_test = "/path/to/clin_path/repeat_test_treatment_2d.csv"
+treatment_train = "/path/to/clin_path/repeat_train_treatment_2d.csv"
 BASELINE_META_FILE = "/path/to/baseline/metadata.csv"
 
 # =============================================================================
 # 1. LOAD DATA
 # =============================================================================
 
-data = pd.read_csv(CLIN_PATH_FILE)
+data = pd.concat([control_test, control_train, treatment_test, treatment_train], ignore_index=True, sort=False)
+data = pd.concat([data.iloc[:, :11], data.iloc[:, 1368:]], axis=1)
 tgp = pd.read_csv(BASELINE_META_FILE)
 
 # Select dose groups of interest

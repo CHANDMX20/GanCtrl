@@ -56,12 +56,12 @@ from sklearn.metrics.pairwise import cosine_similarity  # <-- package cosine
 # 0. CONFIG: update these paths for your environment
 # =============================================================================
 
-REAL_CONTROL_FILE = "/path/to/repeat_test_control_cv2.csv"
+REAL_CONTROL_FILE = "/path/to/repeat_test_control_2d.csv"
 SYN_CONTROL_FILE = (
     "/path/to/results_vae_corr_mod3_cv2/"
     "predictions_decoded/test/generated_predictions_merged_test.csv"
 )
-BASE_OUTPUT_DIR = "/path/to/results_vae_corr_mod3_cv2"
+BASE_OUTPUT_DIR = "/path/to/results"
 
 # =============================================================================
 # 1. Load data
@@ -69,6 +69,7 @@ BASE_OUTPUT_DIR = "/path/to/results_vae_corr_mod3_cv2"
 
 # Real train controls
 real_control = pd.read_csv(REAL_CONTROL_FILE)
+real_control = pd.concat([real_control.iloc[:, :11], real_control.iloc[:, 1368:]], axis=1)
 
 # Synthetic control-like predictions
 syn_control = pd.read_csv(SYN_CONTROL_FILE)

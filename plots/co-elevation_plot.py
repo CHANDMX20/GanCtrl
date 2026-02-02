@@ -70,20 +70,21 @@ library(tibble)
 # Paths (EDIT THESE FOR YOUR ENV)
 # ================================
 # Real test controls
-path_control   <- "path/to/repeat_test_control_cv2.csv"
+path_control   <- "path/to/repeat_test_control_2d.csv"
 # Real test treatments
-path_treatment <- "path/to/repeat_test_treatment_cv2.csv"
+path_treatment <- "path/to/repeat_test_treatment_2d.csv"
 # Synthetic control-equivalent predictions (test)
-path_gen       <- "path/to/generated_predictions_1161985_ControlGenerator_test.csv"
+path_gen       <- "path/to/generated_predictions_test.csv"
 
 # ================================
 # Load data
 # ================================
-control   <- suppressMessages(read_csv(path_control, show_col_types = FALSE))
-treatment <- suppressMessages(read_csv(path_treatment, show_col_types = FALSE))
-real      <- bind_rows(control, treatment)
+control  <- suppressMessages(read_csv(path_control, show_col_types = FALSE))
+treatment<- suppressMessages(read_csv(path_treatment, show_col_types = FALSE))
+real     <- bind_rows(control, treatment)
+real <- cbind(real[, 1:11], real[, 1369:ncol(real)])
 
-gen       <- suppressMessages(read_csv(path_gen, show_col_types = FALSE))
+gen      <- suppressMessages(read_csv(path_gen, show_col_types = FALSE))
 
 # ================================
 # Rounding / harmonization like Python

@@ -81,15 +81,16 @@ from scipy.stats import kstest, zscore
 # =============================================================================
 
 gen = pd.read_csv(
-    "/path/to/generated_predictions_1161985_ControlGenerator_test.csv"
+    "/path/to/generated_predictions_test.csv"
 )
 control = pd.read_csv(
-    "/path/to/repeat_test_control_cv2.csv"
+    "/path/to/repeat_test_control_2d.csv"
 )
 treatment = pd.read_csv(
-    "/path/to/repeat_test_treatment_cv2.csv"
+    "/path/to/repeat_test_treatment_2d.csv"
 )
 real = pd.concat([control, treatment], ignore_index=True, sort=False)
+real = pd.concat([real.iloc[:, :11], real.iloc[:, 1368:]], axis=1)
 
 threshold = pd.read_csv(
     "/path/to/best_per_feature.csv"

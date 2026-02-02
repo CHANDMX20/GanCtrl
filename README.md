@@ -121,7 +121,7 @@ This repository expects preprocessed CSVs derived from Open TG-GATEs. The raw TG
 [Open TG-GATEs download page](https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html).
 
 ### Preprocessed inputs (provided via Zenodo)
-Because the preprocessed input files are large, we distribute them separately on Zenodo: *https://doi.org/10.5281/zenodo.17883691*
+Because the preprocessed input files are large, we distribute them separately on Zenodo: *https://doi.org/10.5281/zenodo.17883691*.
 The Zenodo deposit includes the training and test splits of treatment/control CSVs used for training and evaluation as well as molecular descriptor features required by the model.
 
 ### Generated predictions (synthetic controls)
@@ -130,10 +130,10 @@ Below are the **generated prediction files** (decoded synthetic control outputs)
 
 | File (Zenodo) | Description |
 |---|---|
-| [`generated_predictions_liver_train.csv`](data/generated_predictions_liver_train.csv) | Synthetic control predictions from the **liver**-specific GanCtrl checkpoint for the training set. |
-| [`generated_predictions_liver_test.csv`](data/generated_predictions_liver_test.csv) | Synthetic control predictions from the **liver**-specific GanCtrl checkpoint for the test set. |
-| [`generated_predictions_kidney_train.csv`](data/generated_predictions_kidney_train.csv) | Synthetic control predictions from the **kidney**-specific GanCtrl checkpoint for the training set. |
-| [`generated_predictions_kidney_test.csv`](data/generated_predictions_kidney_test.csv)  | Synthetic control predictions from the **kidney**-specific GanCtrl checkpoint for the test set. |
+| [`generated_liver_train.csv`](data/generated_liver_train.csv) | Synthetic control predictions from the **liver**-specific GanCtrl checkpoint for the training set. |
+| [`generated_liver_test.csv`](data/generated_liver_test.csv) | Synthetic control predictions from the **liver**-specific GanCtrl checkpoint for the test set. |
+| [`generated_kidney_train.csv`](data/generated_kidney_train.csv) | Synthetic control predictions from the **kidney**-specific GanCtrl checkpoint for the training set. |
+| [`generated_kidney_test.csv`](data/generated_kidney_test.csv)  | Synthetic control predictions from the **kidney**-specific GanCtrl checkpoint for the test set. |
 | [`generated_predictions_merged_train.csv`](data/generated_predictions_merged_train.csv) | Merged liver + kidney synthetic control predictions for the training set (38 clinical pathology measures), formatted for statistical agreement analyses (cosine similarity, RMSE, etc). |
 | [`generated_predictions_merged_test.csv`](data/generated_predictions_merged_test.csv)  | Merged liver + kidney synthetic control predictions for the test set (38 clinical pathology measures), formatted for statistical agreement analyses (cosine similarity, RMSE, etc). |
 

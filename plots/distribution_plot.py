@@ -60,7 +60,7 @@ library(ggh4x)
 ## ---------- inputs (EDIT THESE FOR YOUR ENV) ----------
 generated_path_liver  <- "path/to/generated_predictions_liver_test.csv"
 generated_path_kidney <- "path/to/generated_predictions_kidney_test.csv"
-real_path             <- "path/to/repeat_test_control.csv"
+real_path             <- "path/to/repeat_test_control_2d.csv"
 
 ## ---------- read data ----------
 generated_liver <- read.csv(generated_path_liver, check.names = FALSE)

@@ -99,23 +99,24 @@ threshold = pd.read_csv(
 # 2. Harmonize / round selected generated analytes to mimic real reporting
 # =============================================================================
 
-gen["TBIL(mg/dL)"] = pd.to_numeric(gen["TBIL(mg/dL)"], errors="coerce").round(2)
+#gen["TBIL(mg/dL)"] = pd.to_numeric(gen["TBIL(mg/dL)"], errors="coerce").round(2)
 gen["RALB(g/dL)"] = pd.to_numeric(gen["RALB(g/dL)"], errors="coerce").round(2)
-gen["AST(IU/L)"]  = pd.to_numeric(gen["AST(IU/L)"],  errors="coerce").round().astype(int)
-gen["TP(g/dL)"]   = pd.to_numeric(gen["TP(g/dL)"],   errors="coerce").round(1)
-# gen["CRE(mg/dL)"] = pd.to_numeric(gen["CRE(mg/dL)"], errors="coerce").round(1)
-gen["DBIL(mg/dL)"] = pd.to_numeric(gen["DBIL(mg/dL)"], errors="coerce").round(2)
-gen["BUN(mg/dL)"]  = pd.to_numeric(gen["BUN(mg/dL)"],  errors="coerce").round().astype(int)
-# gen["K(meq/L)"]   = pd.to_numeric(gen["K(meq/L)"],   errors="coerce").round(2)
-# gen["GTP(IU/L)"]  = pd.to_numeric(gen["GTP(IU/L)"],  errors="coerce").round().astype(int)
-# gen["Ca(mg/dL)"]  = pd.to_numeric(gen["Ca(mg/dL)"],  errors="coerce").round(1)
-# gen["Cl(meq/L)"]  = pd.to_numeric(gen["Cl(meq/L)"],  errors="coerce").round(1)
-# gen["Na(meq/L)"]  = pd.to_numeric(gen["Na(meq/L)"],  errors="coerce").round(1)
-# gen["IP(mg/dL)"]  = pd.to_numeric(gen["IP(mg/dL)"],  errors="coerce").round(1)
-gen["ALP(IU/L)"]   = pd.to_numeric(gen["ALP(IU/L)"],   errors="coerce").round().astype(int)
-gen["ALT(IU/L)"]   = pd.to_numeric(gen["ALT(IU/L)"],   errors="coerce").round().astype(int)
-gen["LDH(IU/L)"]   = pd.to_numeric(gen["LDH(IU/L)"],   errors="coerce").round().astype(int)
-gen["RALB(g/dL)"]  = pd.to_numeric(gen["RALB(g/dL)"],  errors="coerce").round(1)
+gen["AST(IU/L)"] = pd.to_numeric(gen["AST(IU/L)"], errors="coerce").round().astype(int)
+gen["TP(g/dL)"] = pd.to_numeric(gen["TP(g/dL)"], errors="coerce").round(1)
+#gen["CRE(mg/dL)"] = pd.to_numeric(gen["CRE(mg/dL)"], errors="coerce").round(1)
+#gen["DBIL(mg/dL)"] = pd.to_numeric(gen["DBIL(mg/dL)"], errors="coerce").round(2)
+#gen["BUN(mg/dL)"] = pd.to_numeric(gen["BUN(mg/dL)"], errors="coerce").round().astype(int)
+#gen["K(meq/L)"] = pd.to_numeric(gen["K(meq/L)"], errors="coerce").round(2)
+#gen["GTP(IU/L)"] = pd.to_numeric(gen["GTP(IU/L)"], errors="coerce").round().astype(int)
+gen["Ca(mg/dL)"] = pd.to_numeric(gen["Ca(mg/dL)"], errors="coerce").round(1)
+gen["Cl(meq/L)"] = pd.to_numeric(gen["Cl(meq/L)"], errors="coerce").round(1)
+#gen["Na(meq/L)"] = pd.to_numeric(gen["Na(meq/L)"], errors="coerce").round(1)
+gen["IP(mg/dL)"] = pd.to_numeric(gen["IP(mg/dL)"], errors="coerce").round(1)
+gen["ALP(IU/L)"] = pd.to_numeric(gen["ALP(IU/L)"], errors="coerce").round().astype(int)
+gen["ALT(IU/L)"] = pd.to_numeric(gen["ALT(IU/L)"], errors="coerce").round().astype(int)
+gen["LDH(IU/L)"] = pd.to_numeric(gen["LDH(IU/L)"], errors="coerce").round().astype(int)
+gen["RALB(g/dL)"] = pd.to_numeric(gen["RALB(g/dL)"], errors="coerce").round(1)
+
 
 # =============================================================================
 # 3. REAL side: per-treatment z-scores vs real controls and abnormal counts

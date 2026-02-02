@@ -46,8 +46,8 @@ from os.path import join, isfile
 # 0. FILE PATHS (UPDATE THESE FOR YOUR ENVIRONMENT)
 # =============================================================================
 
-CONTROL_TEST_FILE = "/path/to/clin_path/repeat_test_control_cv2.csv"
-CONTROL_TRAIN_FILE = "/path/to/clin_path/repeat_train_control_cv2.csv"
+CONTROL_TEST_FILE = "/path/to/clin_path/repeat_test_control_2d.csv"
+CONTROL_TRAIN_FILE = "/path/to/clin_path/repeat_train_control_2d.csv"
 BASELINE_META_FILE = "/path/to/baseline/metadata.csv"  # sample-level lab/treatment metadata
 
 # =============================================================================
@@ -59,6 +59,7 @@ train = pd.read_csv(CONTROL_TRAIN_FILE)
 tgp = pd.read_csv(BASELINE_META_FILE)
 
 control = pd.concat([test, train], ignore_index=True, sort=False)
+control = pd.concat([control.iloc[:, :11], control.iloc[:, 1368:]], axis=1)
 
 # =============================================================================
 # 2. CLEAN & NORMALIZE COMPOUND NAMES IN BASELINE METADATA (tgp)

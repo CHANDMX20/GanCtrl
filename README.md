@@ -120,20 +120,26 @@ These analyses help validate that the model does more than fit marginal distribu
 This repository expects preprocessed CSVs derived from Open TG-GATEs. The raw TG-GATEs data are *not* distributed here; you must obtain them separately and reproduce the preprocessing if needed from the official Open TG-GATEs repository:  
 [Open TG-GATEs download page](https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html).
 
-Typical input files:
+### Preprocessed inputs (provided via Zenodo)**
+Because the preprocessed input files are large, we distribute them separately on Zenodo: https://doi.org/10.5281/zenodo.17883691
+The Zenodo deposit includes the training and test splits of treatment/control CSVs used for training and evaluation as well as molecular descriptor features required by the model.
+### Generated predictions (synthetic controls)
 
-| Filepath                                                        | Description                                                                                          |
-|-----------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
-| [`repeat_train_control.csv`](data/repeat_train_control.csv)     | Training data with control profiles consisting clinical-pathology measurements and metadata.        |
-| [`repeat_test_control.csv`](data/repeat_test_control.csv)       | Test data with time-matched control profiles.                                                       |
-| [`repeat_train_treatment.csv`](data/repeat_train_treatment.csv) | Training data with treatment profiles, including high-dose arms used for modeling.                  |
-| [`repeat_test_treatment.csv`](data/repeat_test_treatment.csv)   | Test data with treatment profiles.                                                                  |
-| [`body_wt.csv`](data/body_wt.csv)                               | Longitudinal body weight measurements with `PROGRESS_TIME`, used to derive latest BODY_WEIGHT per animal. |
+Below are the **generated prediction files** (decoded synthetic control outputs) provided on Zenodo for direct downstream analysis and evaluation:
+
+| File (Zenodo) | Description |
+|---|---|
+| `generated_predictions_liver_train.csv` | Synthetic controls for **liver** checkpoint — train pairings (decoded means). |
+| `generated_predictions_liver_test.csv`  | Synthetic controls for **liver** checkpoint — test pairings (decoded means). |
+| `generated_predictions_kidney_train.csv` | Synthetic controls for **kidney** checkpoint — train pairings (decoded means). |
+| `generated_predictions_kidney_test.csv`  | Synthetic controls for **kidney** checkpoint — test pairings (decoded means). |
+| `generated_predictions_merged_train.csv` | Merged synthetic control predictions — train. |
+| `generated_predictions_merged_test.csv`  | Merged synthetic control predictions — test. |
 
 Key column expectations (used in the scripts):
 
 - **Metadata / keys**:
-  - `COMPOUND_NAME`, `DOSE_LEVEL`, `SACRIFICE_PERIOD`, `EXP_ID`, `GROUP_ID`, `INDIVIDUAL_ID`
+  - `COMPOUND_NAME`, `DOSE_LEVEL`, `SACRIFICE_PERIOD`, `INDIVIDUAL_ID`
 - **Outcome features** (38 clinical pathology profiles)
   - Clinical chemistry & hematology markers (ALT, AST, ALP, LDH, TBIL, BUN, CRE, WBC, etc.).
   - Out of 38, seven are liver-specific (ALP, ALT, AST, GTP, LDH, TBIL, DBIL) and seven are kidney-specific (BUN, CRE, Ca, Cl, Na, IP, K) as they known for their established relevance to hepatotoxicity and nephrotoxicity.
@@ -148,7 +154,7 @@ Model outputs:
 
 Adjust paths and prefixes as needed for your environment.
 
-> *The training and test synthetic controls for liver- and kidney-specific checkpoints are deposited and made available on zenodo. These files can be used directly for any kind of downstream analysis and evaluations.*
+> *If sampling is enabled during inference, additional files may be produced such as `generated_samples_s{K}_*.csv` under a `samples/` subfolder.*
 
 ---
 

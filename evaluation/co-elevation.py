@@ -67,19 +67,19 @@ warnings.filterwarnings("ignore", message="Precision loss.*", category=RuntimeWa
 # =============================================================================
 
 # Clinical pathology real data
-CONTROL_FILE = "/path/to/clin_path/repeat_test_control_cv2.csv"
-TREATMENT_FILE = "/path/to/clin_path/repeat_test_treatment_cv2.csv"
+CONTROL_FILE = "/path/to/clin_path/repeat_test_control_2d.csv"
+TREATMENT_FILE = "/path/to/clin_path/repeat_test_treatment_2d.csv"
 
 # Generated control-like predictions conditioned on High
 GENERATED_FILE = (
-    "/path/to/results_vae_corr_mod3_cv2/"
+    "/path/to/results/"
     "predictions_decoded/test/generated_predictions_control_like.csv"
 )
 
 # Output folder for canonical co-elevation metrics
 OUTPUT_DIR = (
-    "/path/to/results_vae_corr_mod3_cv2/"
-    "coelev_canonical_outputs/pair_scatter_kidney"
+    "/path/to/results/"
+    "coelev_canonical_outputs/pair_scatter"
 )
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -90,6 +90,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 control_real = pd.read_csv(CONTROL_FILE)
 treatment_real = pd.read_csv(TREATMENT_FILE)
 real = pd.concat([control_real, treatment_real], ignore_index=True, sort=False)
+real = pd.concat([real.iloc[:, :11], real.iloc[:, 1368:]], axis=1)
 
 gen = pd.read_csv(GENERATED_FILE)
 
@@ -120,11 +121,11 @@ def rn(x: pd.Series, nd: int | None = None) -> pd.Series:
     return s.astype("float64")
 
 # Round selected analytes only (others intentionally left untouched)
-if "TBIL(mg/dL)" in gen.columns:
+#if "TBIL(mg/dL)" in gen.columns:
     gen["TBIL(mg/dL)"] = rn(gen["TBIL(mg/dL)"], 2)
-if "DBIL(mg/dL)" in gen.columns:
+#if "DBIL(mg/dL)" in gen.columns:
     gen["DBIL(mg/dL)"] = rn(gen["DBIL(mg/dL)"], 2)
-if "RALB(g/dL)" in gen.columns:
+#if "RALB(g/dL)" in gen.columns:
     gen["RALB(g/dL)"] = rn(gen["RALB(g/dL)"], 1)
 if "AST(IU/L)" in gen.columns:
     gen["AST(IU/L)"] = rn(gen["AST(IU/L)"], 0)
@@ -134,9 +135,9 @@ if "ALP(IU/L)" in gen.columns:
     gen["ALP(IU/L)"] = rn(gen["ALP(IU/L)"], 0)
 if "LDH(IU/L)" in gen.columns:
     gen["LDH(IU/L)"] = rn(gen["LDH(IU/L)"], 0)
-if "TP(g/dL)" in gen.columns:
+#if "TP(g/dL)" in gen.columns:
     gen["TP(g/dL)"] = rn(gen["TP(g/dL)"], 1)
-if "BUN(mg/dL)" in gen.columns:
+#if "BUN(mg/dL)" in gen.columns:
     gen["BUN(mg/dL)"] = rn(gen["BUN(mg/dL)"], 0)
 
 # NOTE: We intentionally do NOT round the following:

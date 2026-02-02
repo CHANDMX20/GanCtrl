@@ -34,8 +34,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 # 0. FILE PATHS (UPDATE THESE FOR YOUR ENVIRONMENT)
 # =============================================================================
 
-CONTROL_TEST_FILE = "/path/to/clin_path/repeat_test_control_cv2.csv"
-CONTROL_TRAIN_FILE = "/path/to/clin_path/repeat_train_control_cv2.csv"
+CONTROL_TEST_FILE = "/path/to/clin_path/repeat_test_control_2d.csv"
+CONTROL_TRAIN_FILE = "/path/to/clin_path/repeat_train_control_2d.csv"
 POS_CTRL_BASE_PATH = "/path/to/clin_path/positive_control"
 
 # =============================================================================
@@ -46,6 +46,7 @@ test = pd.read_csv(CONTROL_TEST_FILE)
 train = pd.read_csv(CONTROL_TRAIN_FILE)
 
 control = pd.concat([test, train], ignore_index=True, sort=False)
+control = pd.concat([control.iloc[:, :11], control.iloc[:, 1368:]], axis=1)
 
 # =============================================================================
 # 2. DEFINE 38-FEATURE BIOMARKER PANEL

@@ -148,12 +148,10 @@ real             = pd.read_csv(real_path)
 
 # ---- Liver numeric harmonization ----
 for col, cfg in [
-    ("TBIL(mg/dL)", dict(digits=2, to_integer=False)),
-    ("RALB(g/dL)",  dict(digits=2, to_integer=False)),
+    #("TBIL(mg/dL)", dict(digits=2, to_integer=False)),
     ("AST(IU/L)",   dict(digits=None, to_integer=True)),
-    ("TP(g/dL)",    dict(digits=1, to_integer=False)),
-    ("DBIL(mg/dL)", dict(digits=2, to_integer=False)),
-    ("BUN(mg/dL)",  dict(digits=None, to_integer=True)),
+    #("DBIL(mg/dL)", dict(digits=2, to_integer=False)),
+    #("BUN(mg/dL)",  dict(digits=None, to_integer=True)),
     ("ALP(IU/L)",   dict(digits=None, to_integer=True)),
     ("ALT(IU/L)",   dict(digits=None, to_integer=True)),
     ("LDH(IU/L)",   dict(digits=None, to_integer=True)),
@@ -165,12 +163,10 @@ generated_liver = num_round(generated_liver, "RALB(g/dL)", digits=1, to_integer=
 
 # ---- Kidney numeric harmonization ----
 for col, cfg in [
-    ("TBIL(mg/dL)", dict(digits=2, to_integer=False)),
-    ("RALB(g/dL)",  dict(digits=2, to_integer=False)),
+    #("TBIL(mg/dL)", dict(digits=2, to_integer=False)),
     ("AST(IU/L)",   dict(digits=None, to_integer=True)),
-    ("TP(g/dL)",    dict(digits=1, to_integer=False)),
-    ("DBIL(mg/dL)", dict(digits=2, to_integer=False)),
-    ("BUN(mg/dL)",  dict(digits=None, to_integer=True)),
+    #("DBIL(mg/dL)", dict(digits=2, to_integer=False)),
+    #("BUN(mg/dL)",  dict(digits=None, to_integer=True)),
     ("ALP(IU/L)",   dict(digits=None, to_integer=True)),
     ("ALT(IU/L)",   dict(digits=None, to_integer=True)),
     ("LDH(IU/L)",   dict(digits=None, to_integer=True)),
@@ -178,7 +174,6 @@ for col, cfg in [
     generated_kidney = num_round(generated_kidney, col, **cfg)
 
 generated_kidney = num_round(generated_kidney, "RALB(g/dL)", digits=1, to_integer=False)
-
 
 # =============================================================================
 # 3) Filter generated to High dose only
@@ -188,13 +183,17 @@ print("Applying High-dose filter to generated data...")
 generated_liver  = filter_high_only(generated_liver)
 generated_kidney = filter_high_only(generated_kidney)
 
-
 # =============================================================================
 # 4) Build collapsed real_all and gen_all for *all* features
+#    MODIFICATION: features are built from
+#      real_features_df = concat([real.iloc[:, :11], real.iloc[:, 1368:]])
 # =============================================================================
 
-# All measurement columns in REAL: columns from index 11 onward
-raw_all_features = list(real.columns[11:])
+# Build real_features_df exactly as requested (skip real.iloc[:, 11:1368])
+real_features_df = pd.concat([real.iloc[:, :11], real.iloc[:, 1368:]], axis=1)
+
+# Measurement columns are everything after the first 11 metadata cols
+raw_all_features = list(real_features_df.columns[11:])
 
 # Only keep those that also appear in at least one synthetic file
 synthetic_cols = set(generated_liver.columns) | set(generated_kidney.columns)
@@ -203,17 +202,17 @@ all_features = [c for c in raw_all_features if c in synthetic_cols]
 if not all_features:
     raise ValueError("No overlapping measurement columns found between real and synthetic data.")
 
-print(f"Using {len(all_features)} measurement features (from real.columns[11:]):")
+print(f"Using {len(all_features)} measurement features (from real.iloc[:,1368:]):")
 print(all_features)
 
 # ---- Collapse REAL ----
 group_cols_real = [c for c in ["COMPOUND_NAME", "SACRIFICE_PERIOD", "INDIVIDUAL_ID"]
-                   if c in real.columns]
+                   if c in real_features_df.columns]
 if not group_cols_real:
     raise ValueError("Real data is missing required grouping columns "
                      "(COMPOUND_NAME/SACRIFICE_PERIOD/INDIVIDUAL_ID).")
 
-real_all = real[group_cols_real + all_features].copy()
+real_all = real_features_df[group_cols_real + all_features].copy()
 for feat in all_features:
     real_all[feat] = to_num_series(real_all[feat])
 
@@ -240,7 +239,6 @@ agg_syn = {feat: "mean" for feat in all_features}
 gen_all = gen_all.groupby(group_cols_syn, as_index=False).agg(agg_syn)
 
 print(f"Collapsed gen_all shape: {gen_all.shape}")
-
 
 # =============================================================================
 # 5) Jensen–Shannon divergence helper (robust)
@@ -293,7 +291,6 @@ def jensen_shannon_from_samples(x_real, x_syn, n_bins=25, base=2):
     kl_qm = np.sum(q * (log_fn(q) - log_fn(m)))
     jsd = 0.5 * (kl_pm + kl_qm)
     return float(jsd)
-
 
 # =============================================================================
 # 6) Core comparison function (all features, no Wasserstein)
@@ -364,7 +361,6 @@ def compare_distributions(
             na_position="last"
         )
     return summary.reset_index(drop=True)
-
 
 # =============================================================================
 # 7) Run comparisons and write results

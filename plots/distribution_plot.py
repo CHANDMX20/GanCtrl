@@ -63,16 +63,17 @@ generated_path_kidney <- "path/to/generated_predictions_kidney_test.csv"
 real_path             <- "path/to/repeat_test_control.csv"
 
 ## ---------- read data ----------
-generated_liver  <- read.csv(generated_path_liver,  check.names = FALSE)
-generated_kidney <- read.csv(generated_path_kidney, check.names = FALSE)
-real             <- read.csv(real_path,             check.names = FALSE)
+generated_liver <- read.csv(generated_path_liver, check.names = FALSE)
+generated_kidney <- read.csv(generated_path_kidney, check.names=FALSE)
+real      <- read.csv(real_path,      check.names = FALSE)
+real <- cbind(real[, 1:11], real[, 1369:ncol(real)])
 
 ## =============================================================================
 ## 1) Harmonize generated values (rounding / integer casting)
 ##    This mirrors your Python postprocessing to match reporting resolution.
 ## =============================================================================
 
-# helper: coerce to numeric, round, optionally cast to integer
+## helper: coerce to numeric, round, optionally cast to integer
 num_round <- function(df, col, digits = NULL, to_integer = FALSE) {
   if (!col %in% names(df)) return(df)
   v <- df[[col]]
@@ -85,44 +86,45 @@ num_round <- function(df, col, digits = NULL, to_integer = FALSE) {
 }
 
 ## ---------- generated_liver ----------
-generated_liver <- num_round(generated_liver, "TBIL(mg/dL)", digits = 2)
-generated_liver <- num_round(generated_liver, "RALB(g/dL)",  digits = 2)
-generated_liver <- num_round(generated_liver, "AST(IU/L)",   to_integer = TRUE)
-generated_liver <- num_round(generated_liver, "TP(g/dL)",    digits = 1)
+#generated_liver <- num_round(generated_liver, "TBIL(mg/dL)", digits = 2)
+generated_liver <- num_round(generated_liver, "RALB(g/dL)", digits = 2)
+generated_liver <- num_round(generated_liver, "AST(IU/L)",  to_integer = TRUE)
+generated_liver <- num_round(generated_liver, "TP(g/dL)",   digits = 1)
 #generated_liver <- num_round(generated_liver, "CRE(mg/dL)", digits = 1)
-generated_liver <- num_round(generated_liver, "DBIL(mg/dL)", digits = 2)
-generated_liver <- num_round(generated_liver, "BUN(mg/dL)",  to_integer = TRUE)
-#generated_liver <- num_round(generated_liver, "K(meq/L)",   digits = 2)
-#generated_liver <- num_round(generated_liver, "GTP(IU/L)",  to_integer = TRUE)
-#generated_liver <- num_round(generated_liver, "Ca(mg/dL)",  digits = 1)
-#generated_liver <- num_round(generated_liver, "Cl(meq/L)",  digits = 1)
-#generated_liver <- num_round(generated_liver, "Na(meq/L)",  digits = 1)
-#generated_liver <- num_round(generated_liver, "IP(mg/dL)",  digits = 1)
+#generated_liver <- num_round(generated_liver, "DBIL(mg/dL)", digits = 2)
+#generated_liver <- num_round(generated_liver, "BUN(mg/dL)",  to_integer = TRUE)
+#generated_liver <- num_round(generated_liver, "K(meq/L)",    digits = 2)
+#generated_liver <- num_round(generated_liver, "GTP(IU/L)",   to_integer = TRUE)
+generated_liver <- num_round(generated_liver, "Ca(mg/dL)",   digits = 1)
+generated_liver <- num_round(generated_liver, "Cl(meq/L)",   digits = 1)
+#generated_liver <- num_round(generated_liver, "Na(meq/L)",   digits = 1)
+generated_liver <- num_round(generated_liver, "IP(mg/dL)",   digits = 1)
 generated_liver <- num_round(generated_liver, "ALP(IU/L)",   to_integer = TRUE)
 generated_liver <- num_round(generated_liver, "ALT(IU/L)",   to_integer = TRUE)
 generated_liver <- num_round(generated_liver, "LDH(IU/L)",   to_integer = TRUE)
-## final RALB at 1 decimal (matches your Python override)
+## final RALB at 1 decimal (matches your last line overriding to 1 dp)
 generated_liver <- num_round(generated_liver, "RALB(g/dL)",  digits = 1)
 
 ## ---------- generated_kidney ----------
-generated_kidney <- num_round(generated_kidney, "TBIL(mg/dL)", digits = 2)
+#generated_kidney <- num_round(generated_kidney, "TBIL(mg/dL)", digits = 2)
 generated_kidney <- num_round(generated_kidney, "RALB(g/dL)",  digits = 2)
 generated_kidney <- num_round(generated_kidney, "AST(IU/L)",   to_integer = TRUE)
 generated_kidney <- num_round(generated_kidney, "TP(g/dL)",    digits = 1)
 #generated_kidney <- num_round(generated_kidney, "CRE(mg/dL)",  digits = 1)
-generated_kidney <- num_round(generated_kidney, "DBIL(mg/dL)", digits = 2)
-generated_kidney <- num_round(generated_kidney, "BUN(mg/dL)",  to_integer = TRUE)
-#generated_kidney <- num_round(generated_kidney, "K(meq/L)",   digits = 2)
-#generated_kidney <- num_round(generated_kidney, "GTP(IU/L)",  to_integer = TRUE)
-#generated_kidney <- num_round(generated_kidney, "Ca(mg/dL)",  digits = 1)
-#generated_kidney <- num_round(generated_kidney, "Cl(meq/L)",  digits = 1)
-#generated_kidney <- num_round(generated_kidney, "Na(meq/L)",  digits = 1)
-#generated_kidney <- num_round(generated_kidney, "IP(mg/dL)",  digits = 1)
+#generated_kidney <- num_round(generated_kidney, "DBIL(mg/dL)", digits = 2)
+#generated_kidney <- num_round(generated_kidney, "BUN(mg/dL)",  to_integer = TRUE)
+#generated_kidney <- num_round(generated_kidney, "K(meq/L)",    digits = 2)
+#generated_kidney <- num_round(generated_kidney, "GTP(IU/L)",   to_integer = TRUE)
+generated_kidney <- num_round(generated_kidney, "Ca(mg/dL)",   digits = 1)
+generated_kidney <- num_round(generated_kidney, "Cl(meq/L)",   digits = 1)
+#generated_kidney <- num_round(generated_kidney, "Na(meq/L)",   digits = 1)
+generated_kidney <- num_round(generated_kidney, "IP(mg/dL)",   digits = 1)
 generated_kidney <- num_round(generated_kidney, "ALP(IU/L)",   to_integer = TRUE)
 generated_kidney <- num_round(generated_kidney, "ALT(IU/L)",   to_integer = TRUE)
 generated_kidney <- num_round(generated_kidney, "LDH(IU/L)",   to_integer = TRUE)
-## final RALB at 1 decimal
+## final RALB at 1 decimal (last override)
 generated_kidney <- num_round(generated_kidney, "RALB(g/dL)",  digits = 1)
+
 
 ## =============================================================================
 ## 2) Feature lists (biomarker panels)
@@ -317,13 +319,19 @@ kidney_features <- c("BUN(mg/dL)", "CRE(mg/dL)", "Cl(meq/L)", "Ca(mg/dL)",
                      "K(meq/L)", "IP(mg/dL)", "Na(meq/L)")
 
 # Output directory (EDIT AS NEEDED)
-out_dir <- "path/to/results_plots"
-if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+plot_hist_grid(
+  real_liver, gen_liver_collapsed, liver_features,
+  tiff_path = "hist_counts_liver_test.tif",
+  bins = 25, width_px = 9000, height_px = 7000
+)
 
-plot_hist_grid(real_liver,  gen_liver_collapsed,  liver_features,
-               tiff_path = file.path(out_dir, "hist_counts_liver_test.tif"),
-               bins = 25, width_px = 9000, height_px = 7000)
+plot_hist_grid(
+  real_kidney, gen_kidney_collapsed, kidney_features,
+  tiff_path = "hist_counts_kidney_test.tif",
+  bins = 25, width_px = 9000, height_px = 7000
+)
 
-plot_hist_grid(real_kidney, gen_kidney_collapsed, kidney_features,
-               tiff_path = file.path(out_dir, "hist_counts_kidney_test.tif"),
-               bins = 25, width_px = 9000, height_px = 7000)
+# optional: confirm where they were saved + list them
+getwd()
+list.files(getwd(), pattern = "\\.tif$", full.names = TRUE)
+

@@ -92,10 +92,10 @@ set_all_seeds(42)
 # 1. FILE PATHS (UPDATE THESE FOR YOUR ENVIRONMENT)
 # =============================================================================
 
-CONTROL_FILE = "/path/to/clin_path/repeat_test_control_cv2.csv"
-TREATMENT_FILE = "/path/to/clin_path/repeat_test_treatment_cv2.csv"
+CONTROL_FILE = "/path/to/clin_path/repeat_test_control_2d.csv"
+TREATMENT_FILE = "/path/to/clin_path/repeat_test_treatment_2d.csv"
 GENERATED_FILE = (
-    "/path/to/results_vae_corr_mod3_cv2/"
+    "/path/to/results/"
     "predictions_decoded/test/generated_predictions_control_like.csv"
 )
 
@@ -106,6 +106,7 @@ GENERATED_FILE = (
 control = pd.read_csv(CONTROL_FILE)
 treatment = pd.read_csv(TREATMENT_FILE)
 real = pd.concat([control, treatment], ignore_index=True, sort=False)
+real_control = pd.concat([real_control.iloc[:, :11], real_control.iloc[:, 1368:]], axis=1)
 gen = pd.read_csv(GENERATED_FILE)
 
 # =============================================================================

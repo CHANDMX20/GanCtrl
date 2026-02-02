@@ -61,17 +61,18 @@ from scipy.stats import kstest, zscore
 # =============================================================================
 
 gen = pd.read_csv(
-    "/path/to/generated_predictions_1161985_ControlGenerator_train.csv"
+    "/path/to/generated_predictions_train.csv"
 )
 control = pd.read_csv(
-    "/path/to/repeat_train_control_cv2.csv"
+    "/path/to/repeat_train_control_2d.csv"
 )
 treatment = pd.read_csv(
-    "/path/to/repeat_train_treatment_cv2.csv"
+    "/path/to/repeat_train_treatment_2d.csv"
 )
 
 # Combine control + treatment for convenience
 real = pd.concat([control, treatment], ignore_index=True, sort=False)
+real = pd.concat([real.iloc[:, :11], real.iloc[:, 1368:]], axis=1)
 
 # =============================================================================
 # 2. Harmonize generated analytes to match real reporting precision

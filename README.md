@@ -126,9 +126,9 @@ The Zenodo deposit includes the training and test splits of treatment/control CS
 
 ### Generated predictions (synthetic controls)
 
-Below are the **generated prediction files** (decoded synthetic control outputs) provided on Zenodo for direct downstream analysis and evaluation:
+Below are the **generated prediction files** (decoded synthetic control outputs) provided for direct downstream analysis and evaluation:
 
-| File (Zenodo) | Description |
+| File | Description |
 |---|---|
 | [`generated_liver_train.csv`](data/generated_liver_train.csv) | Synthetic control predictions from the **liver**-specific GanCtrl checkpoint for the training set. |
 | [`generated_liver_test.csv`](data/generated_liver_test.csv) | Synthetic control predictions from the **liver**-specific GanCtrl checkpoint for the test set. |

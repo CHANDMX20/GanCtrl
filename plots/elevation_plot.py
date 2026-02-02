@@ -42,9 +42,9 @@ library(tibble)
 # -------------------------------
 # Paths (EDIT for your environment)
 # -------------------------------
-path_control   <- "path/to/repeat_test_control_cv2.csv"
-path_treatment <- "path/to/repeat_test_treatment_cv2.csv"
-path_gen       <- "path/to/generated_predictions_kidney_test.csv"
+path_control   <- "path/to/repeat_test_control_2d.csv"
+path_treatment <- "path/to/repeat_test_treatment_2d.csv"
+path_gen       <- "path/to/generated_merged_test.csv"
 
 # Optional output base directory
 out_dir <- "path/to/results"
@@ -53,11 +53,12 @@ if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
 # ================================
 # Load data
 # ================================
-control   <- suppressMessages(read_csv(path_control,   show_col_types = FALSE))
-treatment <- suppressMessages(read_csv(path_treatment, show_col_types = FALSE))
-real      <- bind_rows(control, treatment)
+control  <- suppressMessages(read_csv(path_control, show_col_types = FALSE))
+treatment<- suppressMessages(read_csv(path_treatment, show_col_types = FALSE))
+real     <- bind_rows(control, treatment)
+real <- cbind(real[, 1:11], real[, 1369:ncol(real)])
 
-gen       <- suppressMessages(read_csv(path_gen,       show_col_types = FALSE))
+gen      <- suppressMessages(read_csv(path_gen, show_col_types = FALSE))
 
 # ================================
 # Rounding / harmonization like Python

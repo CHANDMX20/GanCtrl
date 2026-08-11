@@ -77,7 +77,7 @@ We also evaluated whether replacing real controls with synthetic controls preser
 
 **Files**:
 
-<script_name>.py - Performs statistical testing and evaluates agreement of co-elevation calls between real- and synthetic-control analyses.    
+ - [`co-elevation.py`](./evaluation/co-elevation.py)- Performs statistical testing and evaluates agreement of co-elevation calls between real- and synthetic-control analyses.    
 ---
 
 ### **Toxicity Assessment**

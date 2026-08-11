@@ -71,9 +71,9 @@ Downstream scripts for evaluating model performance i.e., how well do synthetic 
 
 We also evaluated whether replacing real controls with synthetic controls preserves biological inferences for literature-anchored hepatotoxicity and nephrotoxicity responses. Treatment-associated measurement elevations were identified using one-sided Welch t-tests with Benjamini-Hochberg FDR correction. Measurement-level calls were combined to assess coordinated responses for the **ALT–AST**, **ALP–TBIL**, **ALP–GGT/GTP**, and **BUN–CRE** pairs and the **ALT–AST–LDH** triad. Agreement between biological conclusions obtained using real versus synthetic controls was evaluated using three metrics:
 
-- Recall - Fraction of treatments identified as co-elevated using real controls that were also identified as co-elevated using synthetic controls.
-- Specificity - Fraction of treatments not identified as co-elevated using real controls that remained not co-elevated using synthetic controls.
-- Balanced Accuracy - Mean of recall and specificity.
+- **Recall** - Fraction of treatments identified as co-elevated using real controls that were also identified as co-elevated using synthetic controls.
+- **Specificity** - Fraction of treatments not identified as co-elevated using real controls that remained not co-elevated using synthetic controls.
+- **Balanced Accuracy** - Mean of recall and specificity.
 
 **Files**:
 

@@ -107,13 +107,12 @@ To benchmark GanCtrl against current virtual control group (VCG) approaches, VCG
 
 - **VCG** - Historical controls were matched on sacrifice time, vehicle, and laboratory.
 - **VCG-LR** - A lab-relaxed VCG in which historical controls were matched on sacrifice time and vehicle but could originate from different laboratories, approximating a mixed-laboratory historical control setting.
-- 
+
 For each test group, the VCG contained the same number of animals as the corresponding real concurrent control group. Sampling was repeated **100 times** using independent random draws from the eligible historical control pool.
 
 **Files**:
 - [`vcg_baseline.py`](./vcg/vcg_baseline.py) - Generates VCGs by matching historical controls on sacrifice time, vehicle, and laboratory.
 - [`vcg-lr_baseline.py`](./vcg/vcg-lr_baseline.py) - Generates lab-relaxed VCGs (VCG-LR) by matching historical controls on sacrifice time and vehicle while allowing controls from different laboratories.
-
 
 ---
 

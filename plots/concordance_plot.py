@@ -1,476 +1,481 @@
-# =============================================================================
-# Liver & Kidney Concordance Barplots
-# =============================================================================
-# Purpose
-# -------
-# This script builds side-by-side barplots of concordance for:
-#   - GanCtrl (synthetic controls)
-#   - Inter-lab baseline
-#   - Intra-lab baseline
+#!/usr/bin/env Rscript
+
+# GanCtrl vs. VCG/VCG-LR concordance heatmap
 #
-# for:
-#   1) Liver panel:  ALP, ALT, AST, LDH, TBIL, DBIL, GTP
-#   2) Kidney panel: BUN, CRE, Ca, Cl, IP, K, Na
+# This script compares endpoint-level concordance for GanCtrl against two
+# virtual control group benchmarks:
+#   - VCG: laboratory-matched historical controls
+#   - VCG-LR: laboratory-relaxed historical controls
 #
-# Each panel:
-#   - Reads three CSVs: inter-lab, intra-lab, and synthetic (GanCtrl) concordance.
-#   - Normalizes column naming (e.g. "best_accuracy" -> "concordance").
-#   - Extracts concordance values per feature (plus an "Average" row if used).
-#   - Constructs a 3 × N matrix: rows = {GanCtrl, Inter-lab, Intra-lab},
-#     columns = features.
-#   - Plots the matrix as grouped bars, with y-axis scaled/clipped from 0.2 to 1.0
-#     (plot 0..0.8 but relabel ticks as 0.2..1.0).
-#   - Saves high-res TIFFs for liver and kidney.
+# Relative error is calculated as:
+#   GanCtrl vs. VCG    = (VCG - GanCtrl) / VCG
+#   GanCtrl vs. VCG-LR = (VCG-LR - GanCtrl) / VCG-LR
 #
-# How to use
-# ----------
-# 1. Update the INPUT and OUTPUT paths below (search for "path/to/").
-# 2. Run the script in R. It will:
-#      - Save "liver_concordance_test.tif"
-#      - Save "kidney_concordance_test.tif"
-#    into the folder defined by `out_dir`.
+# Interpretation:
+#   <= 0.5% relative difference: GanCtrl is better or comparable
+#   >  0.5% relative difference: VCG/VCG-LR has higher concordance
 #
-# Expected input CSVs
-# -------------------
-# interlab_concordance_overall.csv
-# intralab_concordance_overall.csv
-# test_liver.csv      (GanCtrl liver concordance)
-# test_kidney.csv     (GanCtrl kidney concordance)
+# Expected input files in the working directory:
+#   intralab_VCG_train.csv
+#   interlab_VCG_train.csv
+#   test_liver.csv
+#   test_kidney.csv
 #
-# Each file should contain:
-#   - A column describing the analyte/feature name (e.g. "Feature", "Analyte",
-#     "Marker", "Parameter", "Name"). The script auto-detects this column.
-#   - A column with concordance values. The script looks for:
-#       "concordance", "best_accuracy", or "accuracy" (case-insensitive)
-#     and standardizes it to "concordance".
-#
-# =============================================================================
+# Output:
+#   concordance_heatmap.tif
 
-library(dplyr)
-library(ggplot2)
-library(ggpubr)
-library(ggh4x)
 
-# =============================================================================
-# 1) LIVER CONCORDANCE PLOT
-# =============================================================================
+# -----------------------------------------------------------------------------
+# Configuration
+# -----------------------------------------------------------------------------
 
-# --------- INPUT PATHS (EDIT FOR YOUR ENVIRONMENT) ---------
-# Baseline inter-lab and intra-lab concordance
-interlab  <- read.csv("path/to/baseline/interlab_concordance_overall.csv")
-intralab  <- read.csv("path/to/baseline/intralab_concordance_overall.csv")
+VCG_FILE <- "intralab_VCG_train.csv"
+VCG_LR_FILE <- "interlab_VCG_train.csv"
+GANCTRL_LIVER_FILE <- "test_liver.csv"
+GANCTRL_KIDNEY_FILE <- "test_kidney.csv"
+OUTPUT_FILE <- "concordance_heatmap.tif"
 
-# Synthetic (GanCtrl) concordance for liver panel
-generated <- read.csv("path/to/results_plots/test_liver.csv")
+ZERO_TOLERANCE <- 0.005
 
-## ========= 0) Inputs expected =========
-## interlab, intralab, generated (data frames)
-
-# --- helper: rename "best_accuracy" or "accuracy" -> "concordance" if needed
-rename_accuracy <- function(df) {
-  nms <- names(df)
-  ln  <- tolower(nms)
-
-  # If a 'concordance' column (already standardized) exists, return as is
-  if ("concordance" %in% ln) return(df)
-
-  # Try to find 'best_accuracy' or 'accuracy' and rename to 'concordance'
-  idx_best <- which(ln == "best_accuracy")
-  idx_acc  <- which(ln == "accuracy")
-  if (length(idx_best) > 0L) {
-    nms[idx_best[1]] <- "concordance"
-  } else if (length(idx_acc) > 0L) {
-    nms[idx_acc[1]] <- "concordance"
-  }
-  names(df) <- nms
-  df
-}
-
-interlab  <- rename_accuracy(interlab)
-intralab  <- rename_accuracy(intralab)
-generated <- rename_accuracy(generated)   # data stays named 'generated'
-
-## ========= 1) I/O and feature set =========
-
-# Folder where output plots will be written (EDIT THIS)
-out_dir  <- "path/to/results_plots"
-tif_file <- file.path(out_dir, "liver_concordance_test.tif")
-
-# Liver analytes of interest (must match or be canonically equivalent to input)
-selected_features <- c(
-  "ALP(IU/L)", "ALT(IU/L)", "AST(IU/L)",
-  "LDH(IU/L)", "TBIL(mg/dL)", "DBIL(mg/dL)",
+LIVER_FEATURES <- c(
+  "ALP(IU/L)",
+  "ALT(IU/L)",
+  "AST(IU/L)",
+  "TBIL(mg/dL)",
+  "DBIL(mg/dL)",
+  "LDH(IU/L)",
   "GTP(IU/L)"
 )
 
-## ========= 2) Helpers =========
+KIDNEY_FEATURES <- c(
+  "BUN(mg/dL)",
+  "CRE(mg/dL)",
+  "Ca(mg/dL)",
+  "Cl(meq/L)",
+  "IP(mg/dL)",
+  "K(meq/L)",
+  "Na(meq/L)"
+)
 
-# Canonicalize feature names: remove units/parentheses, lower-case, strip symbols
-canon <- function(x) {
-  x <- gsub("\\(.*?\\)", "", x)
-  x <- tolower(x)
-  gsub("[^a-z0-9]+", "", x)
-}
+SELECTED_FEATURES <- c(LIVER_FEATURES, KIDNEY_FEATURES)
 
-# Identify the feature-name column (e.g. "Feature", "Analyte", "Marker", etc.)
-detect_feature_col <- function(df) {
-  nms <- tolower(names(df))
-  hit <- which(nms %in% c("feature","analyte","marker","parameter","name"))
-  if (length(hit) == 0L) stop("Could not find a feature/marker column.")
-  names(df)[hit[1]]
-}
 
-# Extract concordance values for a set of features (plus "Average")
-extract_concordance <- function(df, sel_feats, source_name = "") {
-  fcol <- detect_feature_col(df)
-  ccol <- names(df)[tolower(names(df)) %in% c("concordance","concordance_score","conc")]
-  if (length(ccol) == 0L) stop("Could not find a 'concordance' column.")
-  ccol <- ccol[1]
+# -----------------------------------------------------------------------------
+# Helper functions
+# -----------------------------------------------------------------------------
 
-  base_feats <- sel_feats[sel_feats != "Average"]
-  key_df   <- canon(df[[fcol]])
-  key_want <- canon(base_feats)
+rename_accuracy_column <- function(df) {
+  lower_names <- tolower(names(df))
 
-  out <- setNames(rep(NA_real_, length(base_feats)), base_feats)
-  if (nrow(df) > 0) {
-    for (i in seq_along(base_feats)) {
-      idx <- which(key_df == key_want[i])
-      if (length(idx) > 0L) {
-        out[i] <- mean(
-          suppressWarnings(as.numeric(df[[ccol]][idx])),
-          na.rm = TRUE
-        )
-      }
+  if ("concordance" %in% lower_names) {
+    return(df)
+  }
+
+  candidates <- c("best_accuracy", "accuracy")
+
+  for (candidate in candidates) {
+    idx <- which(lower_names == candidate)
+
+    if (length(idx) > 0L) {
+      names(df)[idx[1]] <- "concordance"
+      return(df)
     }
   }
 
-  # Add an "Average" across the selected features
-  avg_val <- mean(out, na.rm = TRUE)
-  if (!is.finite(avg_val)) avg_val <- NA_real_
-  c(out, "Average" = avg_val)
-}
-
-## ========= 3) Build plotting matrix (GanCtrl, Inter-lab, Intra-lab) =========
-
-vec_interlab <- extract_concordance(interlab,  selected_features, "Interlab")
-vec_intralab <- extract_concordance(intralab,  selected_features, "Intralab")
-vec_synctrl  <- extract_concordance(generated, selected_features, "GanCtrl")
-
-feature_order <- selected_features
-
-# Rows: GanCtrl, Interlab, Intralab
-mat <- rbind(
-  "GanCtrl"  = vec_synctrl[feature_order],    # 1st row
-  "Interlab" = vec_interlab[feature_order],   # 2nd row
-  "Intralab" = vec_intralab[feature_order]    # 3rd row
-)
-
-# Safety: replace any NA with 0 so the barplot doesn't choke
-if (anyNA(mat)) mat[is.na(mat)] <- 0
-
-## ========= 4) Plotting function =========
-
-plot_concordance <- function(mat, feature_order) {
-  op <- par(no.readonly = TRUE); on.exit(par(op), add = TRUE)
-
-  par(
-    mar = c(8.5, 5.5, 2.5, 1.5),   # margins: bottom, left, top, right
-    mgp = c(2.3, 0.6, 0),          # axis title/labels line spacing
-    tcl = -0.3,                    # tick length
-    las = 1,                       # y-axis labels horizontal
-    xpd = TRUE,
-    font.lab = 2,
-    family = "sans"
-  )
-
-  # Colors correspond to rows of 'mat'
-  cols <- c("#1F78B4", "#A6CEE3", "#FFB74D")  # GanCtrl / Interlab / Intralab
-
-  # Plotting range and clipping
-  lower_bound <- 0.2
-  upper_bound <- 1.0
-
-  # Clip values to [0.2, 1.0] and shift so bars start at 0 (representing 0.2)
-  mat_clipped <- pmin(pmax(mat, lower_bound), upper_bound)
-  mat_shifted <- mat_clipped - lower_bound
-
-  ylim <- c(0, upper_bound - lower_bound)  # 0..0.8
-
-  bp <- barplot(
-    mat_shifted,
-    beside    = TRUE,
-    col       = cols,
-    border    = "white",
-    ylim      = ylim,
-    axes      = FALSE,
-    names.arg = rep("", length(feature_order)),  # x-axis labels drawn manually
-    ylab      = "Concordance",
-    cex.lab   = 1.1,
-    space     = c(0.1, 1.0),
-    width     = 0.85
-  )
-
-  # Y-axis: ticks at shifted positions, labels as real concordance (0.2..1.0)
-  axis_values_plot <- seq(0, upper_bound - lower_bound, by = 0.2)  # 0..0.8
-  axis_values_real <- seq(lower_bound, upper_bound, by = 0.2)      # 0.2..1.0
-
-  axis(
-    2,
-    at     = axis_values_plot,
-    labels = sprintf("%.1f", axis_values_real),
-    cex.axis = 0.90,
-    font = 2
-  )
-
-  box(bty = "o", lwd = 1.2)
-
-  # X-axis: remove units in labels for readability
-  axis(
-    1,
-    at = colMeans(bp),
-    labels = gsub("\\(.*?\\)", "", feature_order),
-    tick = FALSE,
-    cex.axis = 1.1,
-    font = 2,
-    line = 0.2
-  )
-
-  title("Liver", line = 1.0, cex.main = 1.2, font.main = 2)
-
-  # Legend (bottom, outside plotting region)
-  par(xpd = NA)
-  legend_labels <- c("GanCtrl", "Inter-lab", "Intra-lab")
-  legend(
-    "bottom",
-    inset = c(0, -0.36),
-    horiz = TRUE,
-    bty   = "n",
-    fill  = cols,
-    border= NA,
-    legend= legend_labels,
-    cex   = 1.0,
-    text.font = 2,
-    pt.cex = 2,
-    x.intersp = 0.8,
-    seg.len = 2.0,
-    text.width = max(strwidth(legend_labels)) * 1.4,
-    xjust = 0.5,
-    yjust = 0
-  )
-}
-
-## --- Apply order and labels for liver panel ---
-ordered_features <- c("ALP", "ALT", "AST", "GTP", "LDH", "DBIL", "TBIL")
-
-clean_names <- function(x) gsub("\\(.*?\\)", "", x)
-colnames(mat) <- clean_names(colnames(mat))
-mat <- mat[, ordered_features, drop = FALSE]
-
-## --- Save final liver figure ---
-if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
-
-tiff(tif_file, width = 7200, height = 3000, res = 600, compression = "lzw")
-plot_concordance(mat, ordered_features)
-dev.off()
-
-cat("Saved final LIVER concordance TIFF with order: GanCtrl, Inter-lab, Intra-lab\n",
-    tif_file, "\n")
-
-# =============================================================================
-# 2) KIDNEY CONCORDANCE PLOT
-# =============================================================================
-
-# Re-read / re-prepare inputs with generic paths for kidney panel
-interlab  <- read.csv("path/to/baseline/interlab_concordance_overall.csv")
-intralab  <- read.csv("path/to/baseline/intralab_concordance_overall.csv")
-generated <- read.csv("path/to/results_plots/test_kidney.csv")
-
-## ========= Finalized Kidney Concordance Plot (SynCtrl first) =========
-
-# --- 0) Inputs expected ---
-# interlab, intralab, generated (data frames)
-
-rename_accuracy <- function(df) {
-  nms <- names(df)
-  ln  <- tolower(nms)
-  if ("concordance" %in% ln) return(df)
-  idx_best <- which(ln == "best_accuracy")
-  idx_acc  <- which(ln == "accuracy")
-  if (length(idx_best) > 0L) {
-    nms[idx_best[1]] <- "concordance"
-  } else if (length(idx_acc) > 0L) {
-    nms[idx_acc[1]] <- "concordance"
-  }
-  names(df) <- nms
   df
 }
 
-interlab  <- rename_accuracy(interlab)
-intralab  <- rename_accuracy(intralab)
-generated <- rename_accuracy(generated)
-
-## ========= 1) I/O and feature set =========
-
-# Same output directory as above (EDIT IF YOU WANT A DIFFERENT FOLDER)
-out_dir  <- "path/to/results_plots"
-tif_file <- file.path(out_dir, "kidney_concordance_test.tif")
-
-selected_features <- c(
-  "BUN(mg/dL)", "CRE(mg/dL)", "Ca(mg/dL)", "Cl(meq/L)",
-  "IP(mg/dL)", "K(meq/L)", "Na(meq/L)"
-)
-
-## ========= 2) Helpers (same idea as liver; duplicated for self-containment) =========
-
-canon <- function(x) {
-  x <- gsub("\\(.*?\\)", "", x)
+canonicalize_feature <- function(x) {
+  # Remove units in parentheses, convert to lowercase, and remove punctuation.
+  x <- gsub("\\([^)]*\\)", "", as.character(x))
   x <- tolower(x)
   gsub("[^a-z0-9]+", "", x)
 }
 
-detect_feature_col <- function(df) {
-  nms <- tolower(names(df))
-  hit <- which(nms %in% c("feature","analyte","marker","parameter","name"))
-  if (length(hit) == 0L) stop("Could not find a feature/marker column.")
-  names(df)[hit[1]]
+clean_feature_label <- function(x) {
+  # Remove units from labels displayed on the heatmap.
+  trimws(gsub("\\([^)]*\\)", "", x))
 }
 
-extract_concordance <- function(df, sel_feats, source_name = "") {
-  fcol <- detect_feature_col(df)
-  ccol <- names(df)[tolower(names(df)) %in% c("concordance","concordance_score","conc")]
-  if (length(ccol) == 0L) stop("Could not find a 'concordance' column.")
-  ccol <- ccol[1]
+detect_feature_column <- function(df) {
+  lower_names <- tolower(names(df))
+  candidates <- c("feature", "analyte", "marker", "parameter", "name")
+  idx <- which(lower_names %in% candidates)
 
-  base_feats <- sel_feats[sel_feats != "Average"]
-  key_df   <- canon(df[[fcol]])
-  key_want <- canon(base_feats)
+  if (length(idx) == 0L) {
+    stop(
+      paste0(
+        "Could not find a feature column. Expected one of: ",
+        paste(candidates, collapse = ", ")
+      )
+    )
+  }
 
-  out <- setNames(rep(NA_real_, length(base_feats)), base_feats)
-  if (nrow(df) > 0) {
-    for (i in seq_along(base_feats)) {
-      idx <- which(key_df == key_want[i])
-      if (length(idx) > 0L)
-        out[i] <- mean(suppressWarnings(as.numeric(df[[ccol]][idx])), na.rm = TRUE)
+  names(df)[idx[1]]
+}
+
+detect_concordance_column <- function(df, source_name) {
+  lower_names <- tolower(names(df))
+  candidates <- c("concordance", "concordance_score", "conc")
+  idx <- which(lower_names %in% candidates)
+
+  if (length(idx) == 0L) {
+    stop(
+      paste0(
+        "Could not find a concordance column in ", source_name,
+        ". Expected one of: ", paste(candidates, collapse = ", ")
+      )
+    )
+  }
+
+  names(df)[idx[1]]
+}
+
+extract_concordance <- function(df, selected_features, source_name) {
+  feature_col <- detect_feature_column(df)
+  concordance_col <- detect_concordance_column(df, source_name)
+
+  data_keys <- canonicalize_feature(df[[feature_col]])
+  requested_keys <- canonicalize_feature(selected_features)
+
+  values <- setNames(rep(NA_real_, length(selected_features)), selected_features)
+
+  for (i in seq_along(selected_features)) {
+    idx <- which(data_keys == requested_keys[i])
+
+    if (length(idx) == 0L) {
+      next
+    }
+
+    numeric_values <- suppressWarnings(as.numeric(df[[concordance_col]][idx]))
+    numeric_values <- numeric_values[is.finite(numeric_values)]
+
+    if (length(numeric_values) > 0L) {
+      values[i] <- mean(numeric_values)
     }
   }
-  avg_val <- mean(out, na.rm = TRUE)
-  if (!is.finite(avg_val)) avg_val <- NA_real_
-  c(out, "Average" = avg_val)
+
+  values
 }
 
-## ========= 3) Build plotting matrix (SynCtrl, Inter-lab, Intra-lab) =========
+validate_feature_coverage <- function(values, source_name) {
+  missing_features <- names(values)[is.na(values)]
 
-vec_interlab <- extract_concordance(interlab,  selected_features, "Interlab")
-vec_intralab <- extract_concordance(intralab,  selected_features, "Intralab")
-vec_synctrl  <- extract_concordance(generated, selected_features, "GanCtrl")  # from 'generated'
+  if (length(missing_features) > 0L) {
+    warning(
+      paste0(
+        source_name,
+        " is missing concordance values for: ",
+        paste(missing_features, collapse = ", ")
+      )
+    )
+  }
+}
 
-feature_order <- selected_features
-mat <- rbind(
-  "GanCtrl"  = vec_synctrl[feature_order],
-  "Interlab" = vec_interlab[feature_order],
-  "Intralab" = vec_intralab[feature_order]
-)
-if (anyNA(mat)) mat[is.na(mat)] <- 0
+compute_relative_error <- function(reference, ganctrl) {
+  error <- (reference - ganctrl) / reference
+  error[!is.finite(error)] <- NA_real_
+  error
+}
 
-## ========= 4) Plot function (matches liver aesthetic) =========
 
-plot_concordance <- function(mat, feature_order) {
-  op <- par(no.readonly = TRUE); on.exit(par(op), add = TRUE)
+# -----------------------------------------------------------------------------
+# Heatmap plotting
+# -----------------------------------------------------------------------------
+
+plot_error_heatmap <- function(heat_mat, zero_tolerance = ZERO_TOLERANCE) {
   par(
-    mar = c(8.5, 5.5, 2.5, 1.5),
-    mgp = c(2.3, 0.6, 0),
-    tcl = -0.3,
+    mar = c(5.8, 5.8, 1.2, 1.2),
+    mgp = c(2.2, 0.6, 0),
+    tcl = -0.25,
     las = 1,
-    xpd = TRUE,
-    font.lab = 2,
+    family = "sans",
+    cex.axis = 1.15
+  )
+
+  n_rows <- nrow(heat_mat)
+  n_cols <- ncol(heat_mat)
+
+  # Reverse rows so the largest sorted difference appears at the top.
+  z <- heat_mat[n_rows:1, , drop = FALSE]
+
+  # Blue: GanCtrl better or within the comparability tolerance.
+  # Red: benchmark has higher concordance beyond the tolerance.
+  z_category <- matrix(NA_real_, nrow = n_rows, ncol = n_cols)
+  z_category[z <= zero_tolerance] <- -1
+  z_category[z > zero_tolerance] <- 1
+
+  rownames(z_category) <- rownames(z)
+  colnames(z_category) <- colnames(z)
+
+  colors <- c("#D8E7F3", "#F3D8D8")
+
+  image(
+    x = seq_len(n_cols),
+    y = seq_len(n_rows),
+    z = t(z_category),
+    col = colors,
+    breaks = c(-1.5, 0, 1.5),
+    axes = FALSE,
+    xlab = "",
+    ylab = "",
+    useRaster = TRUE
+  )
+
+  abline(
+    h = seq(0.5, n_rows + 0.5, by = 1),
+    col = "white",
+    lwd = 1.2
+  )
+
+  abline(
+    v = seq(0.5, n_cols + 0.5, by = 1),
+    col = "white",
+    lwd = 1.2
+  )
+
+  box(col = "#6F6F6F", lwd = 1.2)
+
+  axis(
+    side = 1,
+    at = seq_len(n_cols),
+    labels = colnames(heat_mat),
+    tick = FALSE,
+    cex.axis = 1.22,
+    font = 2,
+    line = 0.9
+  )
+
+  axis(
+    side = 2,
+    at = seq_len(n_rows),
+    labels = rownames(z),
+    tick = FALSE,
+    cex.axis = 1.20,
+    font = 2,
+    line = 0.15
+  )
+
+  # Display absolute percentage differences inside cells.
+  for (i in seq_len(n_rows)) {
+    for (j in seq_len(n_cols)) {
+      value <- z[i, j]
+
+      if (is.na(value)) {
+        label <- "NA"
+        text_color <- "#555555"
+      } else {
+        label <- if (abs(value) <= zero_tolerance) {
+          "0%"
+        } else {
+          sprintf("%.0f%%", abs(value) * 100)
+        }
+        text_color <- "#2F2F2F"
+      }
+
+      text(
+        x = j,
+        y = i,
+        labels = label,
+        cex = 1.0,
+        font = 2,
+        family = "sans",
+        col = text_color
+      )
+    }
+  }
+}
+
+draw_heatmap_legend <- function() {
+  plot.new()
+  plot.window(xlim = c(0, 1), ylim = c(0, 1))
+
+  colors <- c("#D8E7F3", "#F3D8D8")
+
+  x_box <- 0.22
+  x_text <- 0.30
+
+  rect(
+    xleft = x_box,
+    ybottom = 0.58,
+    xright = x_box + 0.05,
+    ytop = 0.74,
+    col = colors[1],
+    border = "white"
+  )
+
+  text(
+    x = x_text,
+    y = 0.66,
+    labels = "GanCtrl better / comparable",
+    adj = c(0, 0.5),
+    cex = 1.25,
+    font = 2,
+    family = "sans",
+    col = "#2F2F2F"
+  )
+
+  rect(
+    xleft = x_box,
+    ybottom = 0.26,
+    xright = x_box + 0.05,
+    ytop = 0.42,
+    col = colors[2],
+    border = "white"
+  )
+
+  text(
+    x = x_text,
+    y = 0.34,
+    labels = "VCG / VCG-LR better",
+    adj = c(0, 0.5),
+    cex = 1.25,
+    font = 2,
+    family = "sans",
+    col = "#2F2F2F"
+  )
+}
+
+save_heatmap <- function(heat_mat, output_file) {
+  tiff(
+    filename = output_file,
+    width = 3300,
+    height = 5600,
+    res = 600,
+    compression = "lzw"
+  )
+
+  on.exit(dev.off(), add = TRUE)
+
+  layout(
+    matrix(c(1, 2), nrow = 2, byrow = TRUE),
+    heights = c(1, 0.06)
+  )
+
+  plot_error_heatmap(heat_mat)
+
+  par(
+    mar = c(0, 0, 0.1, 0),
     family = "sans"
   )
 
-  cols <- c("#1F78B4", "#A6CEE3", "#FFB74D")  # GanCtrl / Interlab / Intralab
-
-  lower_bound <- 0.2
-  upper_bound <- 1.0
-
-  # Clip to [0.2, 1.0] and shift so plot "0" corresponds to true 0.2
-  mat_clipped <- pmin(pmax(mat, lower_bound), upper_bound)
-  mat_shifted <- mat_clipped - lower_bound
-
-  ylim <- c(0, upper_bound - lower_bound)  # 0 to 0.8
-
-  bp <- barplot(
-    mat_shifted,
-    beside    = TRUE,
-    col       = cols,
-    border    = "white",
-    ylim      = ylim,
-    axes      = FALSE,
-    names.arg = rep("", length(feature_order)),
-    ylab      = "Concordance",
-    cex.lab   = 1.1,
-    space     = c(0.1, 1.0),
-    width     = 0.28
-  )
-
-  ## Y-axis: ticks at shifted positions, labels as real concordance (0.2–1.0)
-  axis_values_plot <- seq(0, upper_bound - lower_bound, by = 0.2)  # 0..0.8
-  axis_values_real <- seq(lower_bound, upper_bound, by = 0.2)      # 0.2..1.0
-
-  axis(
-    2,
-    at     = axis_values_plot,
-    labels = sprintf("%.1f", axis_values_real),
-    cex.axis = 0.9, font = 2
-  )
-  box(bty = "o", lwd = 1.2)
-
-  ## X-axis labels (remove units)
-  axis(
-    1,
-    at = colMeans(bp),
-    labels = gsub("\\(.*?\\)", "", feature_order),
-    tick = FALSE,
-    cex.axis = 1.1,
-    font = 2,
-    line = 0.2
-  )
-
-  ## Title
-  title("Kidney", line = 1.0, cex.main = 1.2, font.main = 2)
-
-  ## Legend (SynCtrl, Inter-lab, Intra-lab)
-  par(xpd = NA)
-  legend_labels <- c("GanCtrl", "Inter-lab", "Intra-lab")
-  legend(
-    "bottom",
-    inset = c(0, -0.36),
-    horiz = TRUE,
-    bty   = "n",
-    fill  = cols,
-    border= NA,
-    legend= legend_labels,
-    cex   = 1.0,
-    text.font = 2,
-    pt.cex = 2,
-    x.intersp = 0.8,
-    seg.len = 2.0,
-    text.width = max(strwidth(legend_labels)) * 1.4,
-    xjust = 0.5,
-    yjust = 0
-  )
+  draw_heatmap_legend()
 }
 
-## --- Apply order and clean names for kidney panel ---
-ordered_features <- c("BUN", "CRE", "Cl", "Ca", "K", "IP", "Na")
-clean_names <- function(x) gsub("\\(.*?\\)", "", x)
-colnames(mat) <- clean_names(colnames(mat))
-mat <- mat[, ordered_features, drop = FALSE]
 
-## ========= 5) Save final kidney TIFF =========
-if (!dir.exists(out_dir)) dir.create(out_dir, recursive = TRUE)
+# -----------------------------------------------------------------------------
+# Main workflow
+# -----------------------------------------------------------------------------
 
-tiff(tif_file, width = 7200, height = 3000, res = 600, compression = "lzw")
-plot_concordance(mat, ordered_features)
-dev.off()
+main <- function() {
+  input_files <- c(
+    VCG_FILE,
+    VCG_LR_FILE,
+    GANCTRL_LIVER_FILE,
+    GANCTRL_KIDNEY_FILE
+  )
 
-cat("Saved final KIDNEY concordance TIFF (order: GanCtrl, Inter-lab, Intra-lab):\n",
-    tif_file, "\n")
+  missing_files <- input_files[!file.exists(input_files)]
+
+  if (length(missing_files) > 0L) {
+    stop(
+      paste0(
+        "Missing required input file(s): ",
+        paste(missing_files, collapse = ", ")
+      )
+    )
+  }
+
+  vcg_df <- rename_accuracy_column(
+    read.csv(VCG_FILE, check.names = FALSE)
+  )
+
+  vcg_lr_df <- rename_accuracy_column(
+    read.csv(VCG_LR_FILE, check.names = FALSE)
+  )
+
+  ganctrl_liver_df <- rename_accuracy_column(
+    read.csv(GANCTRL_LIVER_FILE, check.names = FALSE)
+  )
+
+  ganctrl_kidney_df <- rename_accuracy_column(
+    read.csv(GANCTRL_KIDNEY_FILE, check.names = FALSE)
+  )
+
+  vcg_values <- extract_concordance(
+    vcg_df,
+    SELECTED_FEATURES,
+    "VCG"
+  )
+
+  vcg_lr_values <- extract_concordance(
+    vcg_lr_df,
+    SELECTED_FEATURES,
+    "VCG-LR"
+  )
+
+  ganctrl_liver_values <- extract_concordance(
+    ganctrl_liver_df,
+    LIVER_FEATURES,
+    "GanCtrl liver"
+  )
+
+  ganctrl_kidney_values <- extract_concordance(
+    ganctrl_kidney_df,
+    KIDNEY_FEATURES,
+    "GanCtrl kidney"
+  )
+
+  ganctrl_values <- c(ganctrl_liver_values, ganctrl_kidney_values)
+
+  validate_feature_coverage(vcg_values, "VCG")
+  validate_feature_coverage(vcg_lr_values, "VCG-LR")
+  validate_feature_coverage(ganctrl_values, "GanCtrl")
+
+  feature_order <- SELECTED_FEATURES
+
+  error_vcg <- compute_relative_error(
+    vcg_values[feature_order],
+    ganctrl_values[feature_order]
+  )
+
+  error_vcg_lr <- compute_relative_error(
+    vcg_lr_values[feature_order],
+    ganctrl_values[feature_order]
+  )
+
+  heat_mat <- cbind(
+    "GanCtrl vs. VCG" = error_vcg,
+    "GanCtrl vs. VCG-LR" = error_vcg_lr
+  )
+
+  rownames(heat_mat) <- clean_feature_label(feature_order)
+
+  # Sort by the absolute GanCtrl-vs.-VCG-LR relative difference.
+  sort_score <- abs(heat_mat[, "GanCtrl vs. VCG-LR"])
+  sort_score[!is.finite(sort_score)] <- NA_real_
+
+  ordered_rows <- names(
+    sort(sort_score, decreasing = TRUE, na.last = TRUE)
+  )
+
+  heat_mat_sorted <- heat_mat[ordered_rows, , drop = FALSE]
+
+  cat("Relative errors:\n")
+  print(round(heat_mat, 6))
+
+  cat("\nRelative errors (%):\n")
+  print(round(heat_mat * 100, 2))
+
+  cat("\nEndpoint order based on absolute GanCtrl vs. VCG-LR difference:\n")
+  print(ordered_rows)
+
+  save_heatmap(heat_mat_sorted, OUTPUT_FILE)
+
+  cat("\nSaved concordance heatmap:\n", OUTPUT_FILE, "\n")
+}
+
+
+if (sys.nframe() == 0L) {
+  main()
+}

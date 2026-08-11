@@ -10,7 +10,7 @@ GanCtrl is trained on high-dose treatment samples and couples a context-conditio
  
 ---
 
-![GanCtrl architecture](docs/ganctrl.png)
+![GanCtrl architecture](plots/Figure1.tiff)
 
 ---
 

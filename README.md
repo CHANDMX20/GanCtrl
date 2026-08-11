@@ -11,7 +11,7 @@ GanCtrl is trained on high-dose treatment samples and couples a context-conditio
 - [Introduction](#introduction)
 - [Code Scripts](#code-scripts)
   - [GanCtrl Model Development, Training & Predictions](#ganctrl-model-development-training--predictions)
-  - [Statistical Agreement](#statistical-agreement)
+  - [GanCtrl versus Real control](#ganctrl-versus-real-control)
   - [Toxicity Assessment](#toxicity-assessment)
   - [Literature Validation](#literature-validation)
 - [Data Files](#data-files)
@@ -50,7 +50,7 @@ This contains the core code for developing and training the **GanCtrl** framewor
 
 ---
 
-### **Statistical Agreement**
+### **GanCtrl versus Real control**
 
 Downstream scripts for evaluating model performance i.e., how well do synthetic controls agree with real controls. The performance of GanCtrl was assessed on the test set using two metrices: cosine similarity and root mean squared error (RMSE). Three baselines were derived from time-matched real controls:
 
@@ -68,7 +68,16 @@ Downstream scripts for evaluating model performance i.e., how well do synthetic 
   - [`intralab_rmse.py`](./baseline/intralab_rmse.py) - Script for calculating the RMSE for the intra-lab baseline.
   - [`rmse.py`](./evaluation/rmse.py) - For calculating the rmse for GanCtrl group (synthetic control profiles).
   - [`replicate_control_rmse.py`](./baseline/replicate_control_rmse.py) - For calculating the RMSE for the replicate control baseline.
-    
+
+We also evaluated whether replacing real controls with synthetic controls preserves biological inferences for literature-anchored hepatotoxicity and nephrotoxicity responses. Treatment-associated measurement elevations were identified using one-sided Welch t-tests with Benjamini-Hochberg FDR correction. Measurement-level calls were combined to assess coordinated responses for the ALT–AST, ALP–TBIL, ALP–GGT/GTP, and BUN–CRE pairs and the ALT–AST–LDH triad. Agreement between biological conclusions obtained using real versus synthetic controls was evaluated using three metrics:
+
+- Recall - Fraction of treatments identified as co-elevated using real controls that were also identified as co-elevated using synthetic controls.
+- Specificity - Fraction of treatments not identified as co-elevated using real controls that remained not co-elevated using synthetic controls.
+- Balanced Accuracy - Mean of recall and specificity.
+
+**Files**:
+
+<script_name>.py - Performs statistical testing and evaluates agreement of co-elevation calls between real- and synthetic-control analyses.    
 ---
 
 ### **Toxicity Assessment**
@@ -90,28 +99,6 @@ We first perform concordance analysis on the **training set** to calibrate a z-s
 
 This part of the pipeline is intended to answer:  
 > *“If I replace the concurrent control arm with GanCtrl-generated synthetic controls, do I arrive at the same toxicological conclusions?”*
-
----
-
-### **Literature Validation**
-
-Scripts exploring whether GanCtrl preserves **biologically meaningful relationships** among measurements (biomarkers). This validation examines both the consistency of individual measurement elevations and the preservation of coordinated multi-measurement responses (e.g., ALT–AST, BUN–CRE, ALT–AST–LDH) that are characteristic of hepatic and renal pathophysiology.
-
-- **Measurement-elevation consistency** (single-measurement level):  
-  - Checks whether elevations observed in treated samples with real controls (e.g., ALT, CRE) are consistently reproduced when using synthetic controls instead.
-  - Compares the direction and magnitude of shift when treatment compared to controls across compound-time groups.
-
-- **Coordinated multi-measurement responses** (co-elevation):  
-  - Checks whether biomarker co-regulation patterns are preserved when real controls are substituted with synthetic controls. 
-    - ALT–AST for hepatpocellular injury,
-    - BUN–CRE for renal function, etc.
-      
-These analyses help validate that the model does more than fit marginal distributions; it also respects **multi-marker biological structure** and preserves biologically plausible co-response patterns.
-
-**Files**:
-- [`biomarker_elevation.py`](./evaluation/biomarker_elevation.py) - Script for analyzing elevation calls in treated samples when compared with real and synthetic controls.
-- [`co_elevation.py`](./evaluation/co-elevation.py) -Script for assessing the coordinated multi-biomarker response patterns such as co-elevation trends between measurements.
-
 
 ---
 

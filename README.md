@@ -69,7 +69,7 @@ Downstream scripts for evaluating model performance i.e., how well do synthetic 
   - [`rmse.py`](./evaluation/rmse.py) - For calculating the rmse for GanCtrl group (synthetic control profiles).
   - [`replicate_control_rmse.py`](./baseline/replicate_control_rmse.py) - For calculating the RMSE for the replicate control baseline.
 
-We also evaluated whether replacing real controls with synthetic controls preserves biological inferences for literature-anchored hepatotoxicity and nephrotoxicity responses. Treatment-associated measurement elevations were identified using one-sided Welch t-tests with Benjamini-Hochberg FDR correction. Measurement-level calls were combined to assess coordinated responses for the ALT–AST, ALP–TBIL, ALP–GGT/GTP, and BUN–CRE pairs and the ALT–AST–LDH triad. Agreement between biological conclusions obtained using real versus synthetic controls was evaluated using three metrics:
+We also evaluated whether replacing real controls with synthetic controls preserves biological inferences for literature-anchored hepatotoxicity and nephrotoxicity responses. Treatment-associated measurement elevations were identified using one-sided Welch t-tests with Benjamini-Hochberg FDR correction. Measurement-level calls were combined to assess coordinated responses for the **ALT–AST**, **ALP–TBIL**, **ALP–GGT/GTP**, and **BUN–CRE** pairs and the **ALT–AST–LDH** triad. Agreement between biological conclusions obtained using real versus synthetic controls was evaluated using three metrics:
 
 - Recall - Fraction of treatments identified as co-elevated using real controls that were also identified as co-elevated using synthetic controls.
 - Specificity - Fraction of treatments not identified as co-elevated using real controls that remained not co-elevated using synthetic controls.
@@ -83,7 +83,7 @@ We also evaluated whether replacing real controls with synthetic controls preser
 ### **Toxicity Assessment**
 
 Scripts focusing on whether synthetic controls can substitute real controls for **toxicological decision-making** i.e., it's ability to replicate toxicity outcomes. We do this by implementing concordance analysis comparing sample-level abnormal/normal classifications derived using real-control references versus synthetic-control references. 
-We first perform concordance analysis on the **training set** to calibrate a z-score decision threshold, and then fix this threshold and apply it to the **held-out test set**. The resulting GanCtrl-based calls are benchmarked against **Inter-lab baselines** (cross-study comparisons), and **Intra-lab baselines** (within-study comparisons), to contextualize the performance of synthetic controls relative to biological and technical variability.
+We first perform concordance analysis on the **training set** to calibrate a z-score decision threshold, and then fix this threshold and apply it to the **held-out test set**. 
 
 - **z-Score Calculation**: For each compound–time group and measurement, every treatment sample was standardized against each control source using a control-referenced z-score:  
   $z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$
@@ -92,8 +92,6 @@ We first perform concordance analysis on the **training set** to calibrate a z-s
   $\text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN}$
 
 **Files**:
-- [`interlab_concordance.py`](./baseline/interlab_concordance.py) - Script for concordance analysis for cross-study comparisons.
-- [`intralab_concordance.py`](./baseline/intralab_concordance.py) -Script for concordance analysis in within-study comparisons.
 - [`train_concordnace.py`](./evaluation/train_concordance.py) - Concordance analysis in the training set for threshold calibration.
 - [`test_concordance.py`](./evaluation/test_concordance.py) - Concordance analysis in the test set for evaluating the ability of synthetic controls in toxicity assessment.
 

@@ -1,571 +1,406 @@
+# GanCtrl ratio-of-means comparison
+#
+# Compares treatment-to-control ratios for ALT, AST, BUN, and CRE using:
+#   1. Real concurrent controls
+#   2. GanCtrl synthetic controls
+#
+# The script generates a grouped bar plot for a selected compound and time point.
+
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(readr)
+})
+
 # =============================================================================
-# Nitrosodiethylamine ALT/AST & BUN/CRE Barplots (Test Cohort)
-# =============================================================================
-# Purpose
-# -------
-# This script reproduces the ALT/AST and BUN/CRE two-panel barplots for a
-# single compound/timepoint:
-#
-#   Compound: nitrosodiethylamine
-#   Time    : 8 day
-#
-# For each analyte (ALT, AST, BUN, CRE), it:
-#   1. Loads:
-#        - Test real controls
-#        - Test real treatments
-#        - Synthetic control-equivalent predictions
-#   2. Rounds selected generated analytes to match typical reporting precision,
-#      mirroring the Python evaluation pipeline.
-#   3. Extracts data for the chosen compound and timepoint for:
-#        - Treatment High dose
-#        - Real controls
-#        - Synthetic (“GanCtrl”) controls
-#   4. Computes one-sided t-tests:
-#        Treatment > Real Control
-#        Treatment > Synthetic Control
-#   5. Plots:
-#        Panel 1: ALT (Treatment / Real Control / GanCtrl)
-#        Panel 2: AST (Treatment / Real Control / GanCtrl)
-#        Panel 3: BUN (Treatment / Real Control / GanCtrl)
-#        Panel 4: CRE (Treatment / Real Control / GanCtrl)
-#      with:
-#        - Custom strip labels (ALT/AST/BUN/CRE + units)
-#        - Brackets and p-value labels (p<0.05 or p=xxx)
-#        - 600 dpi TIFF output using base R graphics
-#
-# How to use
-# ----------
-# 1. Update the three paths below (path_control, path_treatment, path_gen)
-#    to point to your own CSV files.
-# 2. Optionally set:
-#       options(plot.outdir = "path/to/output/dir")
-#    Otherwise, plots are written to the current working directory.
-# 3. Run this script in R; two TIFFs will be produced:
-#       nitrosodiethylamine_8day_ALT_AST.tif
-#       nitrosodiethylamine_8day_BUN_CRE.tif
-#
-# Assumptions
-# -----------
-# - Datasets contain at least:
-#     COMPOUND_NAME
-#     SACRIFICE_PERIOD
-#     DOSE_LEVEL  (with "Control" and "High")
-#     INDIVIDUAL_ID (optional for plotting, but present in your data)
-#     ALT/AST/BUN/CRE columns with units in the column names, e.g.
-#       ALT(IU/L), AST(IU/L), BUN(mg/dL), CRE(mg/dL)
-# - Nitrosodiethylamine at "8 day" exists in all three datasets.
+# Configuration
 # =============================================================================
 
-# ================================
-# Setup
-# ================================
-# install.packages("tidyverse") # if needed
-library(ggplot2)
-library(dplyr)
-library(readr)
-library(stringr)
-library(tibble)
+CONTROL_FILE <- "repeat_test_control_2d.csv"
+TREATMENT_FILE <- "repeat_test_treatment_2d.csv"
+GENERATED_FILE <- "generated_predictions_merged_test.csv"
 
-# ================================
-# Paths (EDIT THESE FOR YOUR ENV)
-# ================================
-# Real test controls
-path_control   <- "path/to/repeat_test_control_2d.csv"
-# Real test treatments
-path_treatment <- "path/to/repeat_test_treatment_2d.csv"
-# Synthetic control-equivalent predictions (test)
-path_gen       <- "path/to/generated_predictions_test.csv"
+TARGET_COMPOUND <- "nitrosodiethylamine"
+TARGET_TIME <- "8 day"
 
-# ================================
-# Load data
-# ================================
-control  <- suppressMessages(read_csv(path_control, show_col_types = FALSE))
-treatment<- suppressMessages(read_csv(path_treatment, show_col_types = FALSE))
-real     <- bind_rows(control, treatment)
-real <- cbind(real[, 1:11], real[, 1369:ncol(real)])
+OUTPUT_FILE <- "nitrosodiethylamine_8day_ALT_AST_BUN_CRE_ratios.tif"
 
-gen      <- suppressMessages(read_csv(path_gen, show_col_types = FALSE))
+BAR_WIDTH <- 0.33
+BOX_LWD <- 2.0
+TITLE_CEX <- 1.25
+AXIS_CEX <- 1.25
+LABEL_CEX <- 1.25
+LEGEND_CEX <- 1.10
 
-# ================================
-# Rounding / harmonization like Python
-# (silently skip columns that aren't present)
-# ================================
-round_if <- function(df, col, digits = 0, as_int = FALSE) {
-  # Helper used to round a numeric column if it exists.
-  # - col: column name (string)
-  # - digits: number of decimal places
-  # - as_int: if TRUE, cast to integer after rounding
-  if (!col %in% names(df)) return(df)
-  v <- suppressWarnings(as.numeric(df[[col]]))
-  v <- round(v, digits)
-  if (as_int) v <- as.integer(v)
-  df[[col]] <- v
+# Set to NULL for automatic scaling, or use e.g. c(0, 8).
+RATIO_YLIM <- NULL
+
+# Colors for the two control comparisons.
+COLORS <- c("#168AAD", "#F6C85F")
+names(COLORS) <- c("Treatment / Real Control", "Treatment / GanCtrl")
+
+# =============================================================================
+# Helper functions
+# =============================================================================
+
+check_input_files <- function(paths) {
+  missing <- paths[!file.exists(paths)]
+
+  if (length(missing) > 0) {
+    stop(
+      "Missing input file(s):\n",
+      paste0("  - ", missing, collapse = "\n")
+    )
+  }
+}
+
+keep_clinical_pathology_columns <- function(df) {
+  if (ncol(df) < 1369) {
+    stop(
+      "Expected at least 1369 columns in the real-data input. ",
+      "Check that the TG-GATEs file structure matches the original analysis."
+    )
+  }
+
+  bind_cols(df[, 1:11], df[, 1369:ncol(df)])
+}
+
+round_if_present <- function(df, column, digits = 0, as_integer = FALSE) {
+  if (!column %in% names(df)) {
+    return(df)
+  }
+
+  values <- suppressWarnings(as.numeric(df[[column]]))
+  values <- round(values, digits)
+
+  if (as_integer) {
+    values <- as.integer(values)
+  }
+
+  df[[column]] <- values
   df
 }
 
-# Apply harmonized rounding to generated predictions
-gen <- gen %>%
-  round_if("TBIL(mg/dL)", 2) %>%
-  round_if("RALB(g/dL)", 1) %>%
-  round_if("AST(IU/L)", 0, as_int = TRUE) %>%
-  round_if("TP(g/dL)", 1) %>%
-  round_if("DBIL(mg/dL)", 2) %>%
-  round_if("BUN(mg/dL)", 0, as_int = TRUE) %>%
-  round_if("ALP(IU/L)", 0, as_int = TRUE) %>%
-  round_if("ALT(IU/L)", 0, as_int = TRUE) %>%
-  round_if("LDH(IU/L)", 0, as_int = TRUE) %>%
-  round_if("RALB(g/dL)", 1) # (duplicated in your Python; harmless)
+harmonize_generated_values <- function(df) {
+  df %>%
+    round_if_present("TBIL(mg/dL)", 2) %>%
+    round_if_present("RALB(g/dL)", 1) %>%
+    round_if_present("AST(IU/L)", 0, as_integer = TRUE) %>%
+    round_if_present("TP(g/dL)", 1) %>%
+    round_if_present("DBIL(mg/dL)", 2) %>%
+    round_if_present("BUN(mg/dL)", 0, as_integer = TRUE) %>%
+    round_if_present("ALP(IU/L)", 0, as_integer = TRUE) %>%
+    round_if_present("ALT(IU/L)", 0, as_integer = TRUE) %>%
+    round_if_present("LDH(IU/L)", 0, as_integer = TRUE)
+}
 
-# ================================
-# Build cohorts (match Python)
-# ================================
-control_df <- real %>% filter(.data[["DOSE_LEVEL"]] == "Control")
-treat_df   <- real %>% filter(.data[["DOSE_LEVEL"]] == "High")
-generated  <- gen  %>% filter(.data[["DOSE_LEVEL"]] == "High")
+pick_column <- function(df, candidates) {
+  actual_names <- names(df)
+  lower_names <- tolower(actual_names)
 
-## ================================================================
-## ALT/AST two-panel barplot (base R)
-## Nitrosodiethylamine — 8 day
-## ================================================================
-
-# --- layout & bracket configuration (ALT/AST) ---
-BAR_WIDTH            <- 0.33
-LABEL_GAP_FR_1       <- 0.06
-LABEL_GAP_FR_2       <- 0.11
-BRACKET_BASE_FR      <- 0.70
-BRACKET_GAP_BETWEEN  <- 0.09
-
-ARM_TR_REAL_LEFT_FR  <- 0.05
-ARM_TR_REAL_RIGHT_FR <- 0.05
-ARM_TR_GEN_LEFT_FR   <- 0.06
-ARM_TR_GEN_RIGHT_FR  <- 0.05
-
-AST_BRACKET_SHIFT_FR <- 0.003
-
-STRIP_LINE_OFFSET_FR <- 0.065
-STRIP_TEXT_OFFSET_FR <- 0.032
-STRIP_LINE_LWD       <- 2.4
-STRIP_TEXT_CEX       <- 1.2
-BOX_LWD              <- 2.0
-
-# ---- helper: find column by case-insensitive name ----
-colpick <- function(df, candidates) {
-  n  <- names(df)
-  ln <- tolower(n)
-  for (c in candidates) {
-    i <- which(ln == tolower(c))
-    if (length(i)) return(n[i[1]])
+  for (candidate in candidates) {
+    idx <- which(lower_names == tolower(candidate))
+    if (length(idx) > 0) {
+      return(actual_names[idx[1]])
+    }
   }
-  stop("Column not found: ", paste(candidates, collapse = "/"))
+
+  stop("Could not find column: ", paste(candidates, collapse = " / "))
 }
 
-# ---- helper: prefer one feature name, fall back to another ----
-featurepick <- function(df, preferred, fallback) {
-  n <- names(df)
-  if (preferred %in% n) return(preferred)
-  if (fallback %in% n) return(fallback)
-  stop("Feature column not found: ", preferred, " or ", fallback)
+pick_feature <- function(df, preferred, fallback) {
+  if (preferred %in% names(df)) {
+    return(preferred)
+  }
+
+  if (fallback %in% names(df)) {
+    return(fallback)
+  }
+
+  stop("Could not find feature column: ", preferred, " or ", fallback)
 }
 
-# ---- helper: subset rows by compound + time (case-insensitive match) ----
-subset_by_ct <- function(df, comp_col, time_col, compound, time_val) {
+subset_compound_time <- function(df, compound_col, time_col, compound, time_value) {
+  compound_values <- trimws(tolower(as.character(df[[compound_col]])))
+  time_values <- trimws(tolower(as.character(df[[time_col]])))
+
   df[
-    trimws(tolower(df[[comp_col]])) == trimws(tolower(compound)) &
-    trimws(tolower(df[[time_col]]))  == trimws(tolower(time_val)),
+    compound_values == trimws(tolower(compound)) &
+      time_values == trimws(tolower(time_value)),
     ,
     drop = FALSE
   ]
 }
 
-# ---- simple NA-robust mean ----
-mean_na <- function(x) mean(x, na.rm = TRUE)
-
-# ---- format p-value (thresholded at 0.05) ----
-fmt_p_thresh <- function(p) {
-  if (is.na(p)) "p=NA"
-  else if (p < 0.05) "p<0.05"
-  else paste0("p=", formatC(p, format = "f", digits = 3))
+numeric_values <- function(x) {
+  suppressWarnings(as.numeric(as.character(x)))
 }
 
-# ---- draw bracket + label between two x-positions ----
-add_sq_bracket_lr <- function(x1, x2, y_top, arm_left, arm_right, label = "", cex = 0.9) {
-  segments(x1, y_top - arm_left,  x1, y_top)
-  segments(x2, y_top - arm_right, x2, y_top)
-  segments(x1, y_top, x2, y_top)
-  text((x1 + x2)/2, y_top, labels = label, pos = 3, cex = cex, font = 2)
-}
+mean_finite <- function(x) {
+  x <- numeric_values(x)
+  x <- x[is.finite(x)]
 
-# ---- panel strip (top line + label) ----
-panel_strip <- function(label, cex = STRIP_TEXT_CEX) {
-  usr <- par("usr")
-  x1  <- usr[1]; x2 <- usr[2]; y1 <- usr[3]; y2 <- usr[4]
-  y_line <- y2 - STRIP_LINE_OFFSET_FR * (y2 - y1)
-  segments(x1, y_line, x2, y_line, xpd = NA, lwd = STRIP_LINE_LWD)
-  y_txt  <- y2 - STRIP_TEXT_OFFSET_FR * (y2 - y1)
-  text((x1 + x2)/2, y_txt, labels = label, font = 2, cex = cex, xpd = NA)
-}
-
-# ---- draw two-line x-axis labels ----
-draw_two_line_labels <- function(at, line1, line2, cex = 0.95) {
-  usr  <- par("usr")
-  y1   <- usr[3]; y2 <- usr[4]; span <- y2 - y1
-  axis(1, at = at, labels = FALSE, tck = -0.01)
-  text(at, y1 - LABEL_GAP_FR_1 * span, labels = line1, xpd = NA, cex = cex, font = 1)
-  text(at, y1 - LABEL_GAP_FR_2 * span, labels = line2, xpd = NA, cex = cex, font = 1)
-}
-
-# ---- extract unit from column name like "ALT(IU/L)" ----
-extract_unit <- function(colname, fallback = "U/L") {
-  m <- regmatches(colname, regexpr("\\(([^)]+)\\)", colname))
-  if (length(m) && nzchar(m)) paste0(" ", m) else paste0(" (", fallback, ")")
-}
-
-# ---- simple capitalization helper for title ----
-ucfirst <- function(s) {
-  if (!nzchar(s)) return(s)
-  paste0(toupper(substring(s, 1, 1)), substring(s, 2))
-}
-
-# ---- identify key columns & features (ALT/AST) ----
-comp_col <- colpick(treat_df, c("COMPOUND_NAME","COMPOUND","compound"))
-time_col <- colpick(treat_df,  c("SACRIFICE_PERIOD","TIME","time","PERIOD"))
-ALT_col  <- featurepick(treat_df, "ALT(IU/L)", "ALT")
-AST_col  <- featurepick(treat_df, "AST(IU/L)", "AST")
-
-ALT_label <- paste0("ALT", extract_unit(ALT_col))
-AST_label <- paste0("AST", extract_unit(AST_col))
-
-# ---- focal compound/timepoint for plot ----
-compound_lbl <- "nitrosodiethylamine"
-time_lbl     <- "8 day"
-
-# ALT data vectors
-treat_alt <- subset_by_ct(treat_df,   comp_col, time_col, compound_lbl, time_lbl)[[ALT_col]]
-ctrl_alt  <- subset_by_ct(control_df, comp_col, time_col, compound_lbl, time_lbl)[[ALT_col]]
-gen_alt   <- subset_by_ct(generated,  comp_col, time_col, compound_lbl, time_lbl)[[ALT_col]]
-
-# AST data vectors
-treat_ast <- subset_by_ct(treat_df,   comp_col, time_col, compound_lbl, time_lbl)[[AST_col]]
-ctrl_ast  <- subset_by_ct(control_df, comp_col, time_col, compound_lbl, time_lbl)[[AST_col]]
-gen_ast   <- subset_by_ct(generated,  comp_col, time_col, compound_lbl, time_lbl)[[AST_col]]
-
-# ---- one-sided t-tests: Treatment > Control ----
-p_alt_trt_vs_real <- tryCatch(t.test(treat_alt, ctrl_alt, alternative = "greater")$p.value,
-                              error = function(e) NA_real_)
-p_alt_trt_vs_gen  <- tryCatch(t.test(treat_alt, gen_alt,  alternative = "greater")$p.value,
-                              error = function(e) NA_real_)
-p_ast_trt_vs_real <- tryCatch(t.test(treat_ast, ctrl_ast, alternative = "greater")$p.value,
-                              error = function(e) NA_real_)
-p_ast_trt_vs_gen  <- tryCatch(t.test(treat_ast, gen_ast,  alternative = "greater")$p.value,
-                              error = function(e) NA_real_)
-
-# ---- bar heights (means) ----
-alt_means <- c(mean_na(treat_alt), mean_na(ctrl_alt), mean_na(gen_alt))
-ast_means <- c(mean_na(treat_ast), mean_na(ctrl_ast), mean_na(gen_ast))
-cols      <- c("#0072B2", "#E69F00", "#009E73") # Treatment / Real / GanCtrl
-
-# ---- ALT/AST TIFF output (600 dpi) ----
-out_dir  <- getOption("plot.outdir", getwd())
-out_file <- file.path(out_dir, "nitrosodiethylamine_8day_ALT_AST.tif")
-dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-
-ok <- FALSE
-tryCatch({
-  tiff(out_file, width = 8.5, height = 7.0, units = "in", res = 600, compression = "lzw")
-  op <- par(no.readonly = TRUE); on.exit(par(op), add = TRUE)
-
-  par(mfrow = c(1, 2), mar = c(5.8, 4.1, 1.4, 1.2), oma = c(0, 0, 2.6, 0))
-
-  ## ===================== ALT (0–250) =====================
-  bp1 <- barplot(
-    alt_means, col = cols, ylim = c(0, 250),
-    ylab = "", xaxt = "n", yaxt = "n", width = BAR_WIDTH, border = NA
-  )
-  box(lwd = BOX_LWD)
-  panel_strip(ALT_label)
-
-  y_ticks_alt <- seq(0, 250, by = 50)
-  y_ticks_alt <- y_ticks_alt[y_ticks_alt < 250]
-  axis(2, at = y_ticks_alt, labels = y_ticks_alt, las = 1, tck = -0.015)
-
-  # x-axis labels (Treatment / Real Control / GanCtrl)
-  draw_two_line_labels(bp1, c("Treatment","Real","GanCtrl"), c("","Control",""))
-
-  usr1  <- par("usr"); span1 <- usr1[4] - usr1[3]
-  ytop1a <- BRACKET_BASE_FR * usr1[4]
-  ytop1b <- ytop1a + BRACKET_GAP_BETWEEN * span1
-
-  # Bracket: Treatment vs Real Control
-  add_sq_bracket_lr(bp1[1], bp1[2], y_top = ytop1a,
-                    arm_left = ARM_TR_REAL_LEFT_FR * span1,
-                    arm_right = ARM_TR_REAL_RIGHT_FR * span1,
-                    label = fmt_p_thresh(p_alt_trt_vs_real), cex = 0.92)
-
-  # Bracket: Treatment vs GanCtrl
-  add_sq_bracket_lr(bp1[1], bp1[3], y_top = ytop1b,
-                    arm_left = ARM_TR_GEN_LEFT_FR * span1,
-                    arm_right = ARM_TR_GEN_RIGHT_FR * span1,
-                    label = fmt_p_thresh(p_alt_trt_vs_gen),  cex = 0.92)
-
-  ## ===================== AST (0–500) =====================
-  bp2 <- barplot(
-    ast_means, col = cols, ylim = c(0, 500),
-    ylab = "", xaxt = "n", yaxt = "n", width = BAR_WIDTH, border = NA
-  )
-  box(lwd = BOX_LWD)
-  panel_strip(AST_label)
-
-  y_ticks_ast <- seq(0, 500, by = 100)
-  y_ticks_ast <- y_ticks_ast[y_ticks_ast < 500]
-  axis(2, at = y_ticks_ast, labels = y_ticks_ast, las = 1, tck = -0.015)
-
-  # x-axis labels (Treatment / Real Control / GanCtrl)
-  draw_two_line_labels(bp2, c("Treatment","Real","GanCtrl"), c("","Control",""))
-
-  usr2  <- par("usr"); span2 <- usr2[4] - usr2[3]
-  base_ast   <- BRACKET_BASE_FR * usr2[4] - AST_BRACKET_SHIFT_FR * span2
-  ytop2a     <- base_ast
-  ytop2b     <- base_ast + BRACKET_GAP_BETWEEN * span2
-
-  # Bracket: Treatment vs Real Control
-  add_sq_bracket_lr(bp2[1], bp2[2], y_top = ytop2a,
-                    arm_left = ARM_TR_REAL_LEFT_FR * span2,
-                    arm_right = ARM_TR_REAL_RIGHT_FR * span2,
-                    label = fmt_p_thresh(p_ast_trt_vs_real), cex = 0.92)
-
-  # Bracket: Treatment vs GanCtrl
-  add_sq_bracket_lr(bp2[1], bp2[3], y_top = ytop2b,
-                    arm_left = ARM_TR_GEN_LEFT_FR * span2,
-                    arm_right = ARM_TR_GEN_RIGHT_FR * span2,
-                    label = fmt_p_thresh(p_ast_trt_vs_gen),  cex = 0.92)
-
-  # Combined title for both panels
-  title_str <- paste0(compound_lbl, " — ", time_lbl)
-  mtext(ucfirst(title_str), outer = TRUE, cex = 1.25, line = 0.9, font = 2)
-
-  ok <- TRUE
-},
-error = function(e) message("Plotting error: ", conditionMessage(e)),
-finally = {
-  if (length(dev.list())) try(invisible(dev.off()), silent = TRUE)
-})
-
-if (ok && file.exists(out_file)) {
-  message("Saved: ", normalizePath(out_file, winslash = "/"))
-} else {
-  stop("TIFF not saved. Check write permissions for: ", out_dir,
-       "\nWorking dir: ", getwd())
-}
-
-## ================================================================
-## BUN/CRE two-panel barplot (base R) — Nitrosodiethylamine, 8 day
-## (BUN ylim 0–24 w/ ticks 0..20 by 4; CRE ylim 0–0.6 w/ ticks 0..0.5 by 0.1)
-## ================================================================
-
-# Panel layout & bracket geometry (BUN/CRE)
-BAR_WIDTH              <- 0.33
-LABEL_GAP_FR_1         <- 0.06
-LABEL_GAP_FR_2         <- 0.11
-BRACKET_BASE_FR        <- 0.70
-BRACKET_GAP_BETWEEN    <- 0.09
-ARM_TR_REAL_LEFT_FR    <- 0.06
-ARM_TR_REAL_RIGHT_FR   <- 0.06
-ARM_TR_GEN_LEFT_FR     <- 0.06
-ARM_TR_GEN_RIGHT_FR    <- 0.06
-PANEL2_BRACKET_SHIFT_FR<- 0.003
-STRIP_LINE_OFFSET_FR   <- 0.065
-STRIP_TEXT_OFFSET_FR   <- 0.032
-STRIP_LINE_LWD         <- 2.4
-STRIP_TEXT_CEX         <- 1.2
-BOX_LWD                <- 2.0
-
-## ---- NEW: upward shift for CRE brackets (fraction of y-span) ----
-CRE_BRACKET_UP_FR      <- 0.03
-
-## ---- explicit y-range + tick ceilings ----
-BUN_YLIM   <- c(0, 24)
-BUN_TICKS  <- seq(0, 20, by = 4)
-CRE_YLIM   <- c(0, 0.64)
-CRE_TICKS  <- seq(0, 0.5, by = 0.1)
-
-# ---------- helpers (duplicated here for clarity & self-containment) ----------
-colpick <- function(df, candidates){
-  n  <- names(df)
-  ln <- tolower(n)
-  for (c in candidates) {
-    i <- which(ln == tolower(c))
-    if (length(i)) return(n[i[1]])
+  if (length(x) == 0) {
+    return(NA_real_)
   }
-  stop("Column not found: ", paste(candidates, collapse = "/"))
-}
-featurepick <- function(df, preferred, fallback){
-  n <- names(df)
-  if (preferred %in% n) return(preferred)
-  if (fallback %in% n) return(fallback)
-  stop("Feature column not found: ", preferred, " or ", fallback)
-}
-subset_by_ct <- function(df, comp_col, time_col, compound, time_val){
-  df[
-    trimws(tolower(df[[comp_col]])) == trimws(tolower(compound)) &
-    trimws(tolower(df[[time_col]]))  == trimws(tolower(time_val)),
-    ,
-    drop = FALSE
-  ]
-}
-mean_na <- function(x) mean(x, na.rm = TRUE)
 
-fmt_p_label <- function(p, thr = 0.05){
-  if (is.na(p)) "p=NA"
-  else if (p < thr) "p<0.05"
-  else paste0("p=", formatC(p, format = "f", digits = 3))
-}
-add_sq_bracket_lr <- function(x1, x2, y_top, arm_left, arm_right, label = "", cex = 0.9){
-  segments(x1, y_top - arm_left,  x1, y_top)
-  segments(x2, y_top - arm_right, x2, y_top)
-  segments(x1, y_top, x2, y_top)
-  if (nzchar(label)) text((x1 + x2)/2, y_top, labels = label, pos = 3, cex = cex, font = 2)
-}
-panel_strip <- function(label, cex = STRIP_TEXT_CEX){
-  usr <- par("usr")
-  x1  <- usr[1]; x2 <- usr[2]; y1 <- usr[3]; y2 <- usr[4]
-  y_line <- y2 - STRIP_LINE_OFFSET_FR * (y2 - y1)
-  segments(x1, y_line, x2, y_line, xpd = NA, lwd = STRIP_LINE_LWD)
-  y_txt  <- y2 - STRIP_TEXT_OFFSET_FR * (y2 - y1)
-  text((x1 + x2)/2, y_txt, labels = label, font = 2, cex = cex, xpd = NA)
-}
-draw_two_line_labels <- function(at, line1, line2, cex = 0.95){
-  usr  <- par("usr")
-  y1   <- usr[3]; y2 <- usr[4]; span <- y2 - y1
-  axis(1, at = at, labels = FALSE, tck = -0.01)
-  text(at, y1 - LABEL_GAP_FR_1 * span, labels = line1, xpd = NA, cex = cex, font = 1)
-  text(at, y1 - LABEL_GAP_FR_2 * span, labels = line2, xpd = NA, cex = cex, font = 1)
-}
-extract_unit <- function(colname, fallback = "mg/dL"){
-  m <- regmatches(colname, regexpr("\\(([^)]+)\\)", colname))
-  if (length(m) && nzchar(m)) paste0(" ", m) else paste0(" (", fallback, ")")
-}
-ucfirst <- function(s){
-  if (!nzchar(s)) return(s)
-  paste0(toupper(substring(s, 1, 1)), substring(s, 2))
+  mean(x)
 }
 
-# ---------- columns (BUN/CRE) ----------
-comp_col <- colpick(treat_df, c("COMPOUND_NAME","COMPOUND","compound"))
-time_col <- colpick(treat_df,  c("SACRIFICE_PERIOD","TIME","time","PERIOD"))
-BUN_col  <- featurepick(treat_df, "BUN(mg/dL)", "BUN")
-CRE_col  <- featurepick(treat_df, "CRE(mg/dL)", "CRE")
+ratio_of_means <- function(treatment_values, control_values) {
+  treatment_mean <- mean_finite(treatment_values)
+  control_mean <- mean_finite(control_values)
 
-BUN_label <- paste0("BUN", extract_unit(BUN_col, "mg/dL"))
-CRE_label <- paste0("CRE", extract_unit(CRE_col, "mg/dL"))
+  if (
+    !is.finite(treatment_mean) ||
+      !is.finite(control_mean) ||
+      control_mean == 0
+  ) {
+    return(NA_real_)
+  }
 
-# ---------- cohort ----------
-compound_lbl <- "nitrosodiethylamine"
-time_lbl     <- "8 day"
+  treatment_mean / control_mean
+}
 
-treat_bun <- subset_by_ct(treat_df,   comp_col, time_col, compound_lbl, time_lbl)[[BUN_col]]
-ctrl_bun  <- subset_by_ct(control_df, comp_col, time_col, compound_lbl, time_lbl)[[BUN_col]]
-gen_bun   <- subset_by_ct(generated,  comp_col, time_col, compound_lbl, time_lbl)[[BUN_col]]
+capitalize_first <- function(x) {
+  if (!nzchar(x)) {
+    return(x)
+  }
 
-treat_cre <- subset_by_ct(treat_df,   comp_col, time_col, compound_lbl, time_lbl)[[CRE_col]]
-ctrl_cre  <- subset_by_ct(control_df, comp_col, time_col, compound_lbl, time_lbl)[[CRE_col]]
-gen_cre   <- subset_by_ct(generated,  comp_col, time_col, compound_lbl, time_lbl)[[CRE_col]]
+  paste0(toupper(substr(x, 1, 1)), substr(x, 2, nchar(x)))
+}
 
-# ---------- stats (Treatment > Control) ----------
-p_bun_trt_vs_real <- tryCatch(t.test(treat_bun, ctrl_bun, alternative="greater")$p.value,
-                              error=function(e) NA_real_)
-p_bun_trt_vs_gen  <- tryCatch(t.test(treat_bun, gen_bun,  alternative="greater")$p.value,
-                              error=function(e) NA_real_)
-p_cre_trt_vs_real <- tryCatch(t.test(treat_cre, ctrl_cre, alternative="greater")$p.value,
-                              error=function(e) NA_real_)
-p_cre_trt_vs_gen  <- tryCatch(t.test(treat_cre, gen_cre,  alternative="greater")$p.value,
-                              error=function(e) NA_real_)
-
-# ---------- bars (means) ----------
-bun_means <- c(mean_na(treat_bun), mean_na(ctrl_bun), mean_na(gen_bun))
-cre_means <- c(mean_na(treat_cre), mean_na(ctrl_cre), mean_na(gen_cre))
-cols      <- c("#0072B2", "#E69F00", "#009E73")  # Treatment / Real / GanCtrl
-
-# ---------- TIFF 600 dpi ----------
-out_dir  <- getOption("plot.outdir", getwd())
-out_file <- file.path(out_dir, "nitrosodiethylamine_8day_BUN_CRE.tif")
-dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
-
-ok <- FALSE
-tryCatch({
-  tiff(out_file, width = 8.5, height = 7.0, units = "in", res = 600, compression = "lzw")
-  op <- par(no.readonly = TRUE); on.exit(par(op), add = TRUE)
-  par(mfrow = c(1, 2), mar = c(5.8, 4.1, 1.4, 1.2), oma = c(0, 0, 2.6, 0))
-
-  ## ===================== BUN =====================
-  bp1 <- barplot(
-    bun_means, col = cols, ylim = BUN_YLIM,
-    ylab = "", xaxt = "n", yaxt = "n", width = BAR_WIDTH, border = NA
+calculate_ratio_matrix <- function(treatment_df, control_df, generated_df) {
+  treatment_compound_col <- pick_column(
+    treatment_df,
+    c("COMPOUND_NAME", "COMPOUND", "compound")
   )
-  box(lwd = BOX_LWD)
-  panel_strip(BUN_label)
-
-  axis(2, at = BUN_TICKS, labels = BUN_TICKS, las = 1, tck = -0.015)
-
-  # x-axis labels (Treatment / Real Control / GanCtrl)
-  draw_two_line_labels(bp1, c("Treatment","Real","GanCtrl"), c("","Control",""))
-
-  usr1  <- par("usr"); span1 <- usr1[4] - usr1[3]
-  ytop1a <- usr1[3] + BRACKET_BASE_FR * span1
-  ytop1b <- ytop1a + BRACKET_GAP_BETWEEN * span1
-
-  add_sq_bracket_lr(bp1[1], bp1[2], y_top = ytop1a,
-                    arm_left = ARM_TR_REAL_LEFT_FR * span1,
-                    arm_right = ARM_TR_REAL_RIGHT_FR * span1,
-                    label = fmt_p_label(p_bun_trt_vs_real), cex = 0.92)
-  add_sq_bracket_lr(bp1[1], bp1[3], y_top = ytop1b,
-                    arm_left = ARM_TR_GEN_LEFT_FR * span1,
-                    arm_right = ARM_TR_GEN_LEFT_FR * span1,
-                    label = fmt_p_label(p_bun_trt_vs_gen),  cex = 0.92)
-
-  ## ===================== CRE =====================
-  bp2 <- barplot(
-    cre_means, col = cols, ylim = CRE_YLIM,
-    ylab = "", xaxt = "n", yaxt = "n", width = BAR_WIDTH, border = NA
+  treatment_time_col <- pick_column(
+    treatment_df,
+    c("SACRIFICE_PERIOD", "TIME", "time", "PERIOD")
   )
-  box(lwd = BOX_LWD)
-  panel_strip(CRE_label)
 
-  axis(2, at = CRE_TICKS, labels = CRE_TICKS, las = 1, tck = -0.015)
+  control_compound_col <- pick_column(
+    control_df,
+    c("COMPOUND_NAME", "COMPOUND", "compound")
+  )
+  control_time_col <- pick_column(
+    control_df,
+    c("SACRIFICE_PERIOD", "TIME", "time", "PERIOD")
+  )
 
-  # x-axis labels (Treatment / Real Control / GanCtrl)
-  draw_two_line_labels(bp2, c("Treatment","Real","GanCtrl"), c("","Control",""))
+  generated_compound_col <- pick_column(
+    generated_df,
+    c("COMPOUND_NAME", "COMPOUND", "compound")
+  )
+  generated_time_col <- pick_column(
+    generated_df,
+    c("SACRIFICE_PERIOD", "targetTime", "TIME", "time", "PERIOD")
+  )
 
-  usr2  <- par("usr"); span2 <- usr2[4] - usr2[3]
+  feature_specs <- list(
+    ALT = c("ALT(IU/L)", "ALT"),
+    AST = c("AST(IU/L)", "AST"),
+    BUN = c("BUN(mg/dL)", "BUN"),
+    CRE = c("CRE(mg/dL)", "CRE")
+  )
 
-  ## ---- upward shift of CRE brackets so labels do not collide ----
-  base2   <- usr2[3] + (BRACKET_BASE_FR + CRE_BRACKET_UP_FR) * span2 - PANEL2_BRACKET_SHIFT_FR * span2
-  top_cap <- usr2[4] - 0.02 * span2
-  ytop2a  <- min(base2, top_cap)
-  ytop2b  <- min(base2 + BRACKET_GAP_BETWEEN * span2, top_cap)
+  treatment_features <- lapply(
+    feature_specs,
+    function(x) pick_feature(treatment_df, x[1], x[2])
+  )
+  control_features <- lapply(
+    feature_specs,
+    function(x) pick_feature(control_df, x[1], x[2])
+  )
+  generated_features <- lapply(
+    feature_specs,
+    function(x) pick_feature(generated_df, x[1], x[2])
+  )
 
-  add_sq_bracket_lr(bp2[1], bp2[2], y_top = ytop2a,
-                    arm_left = ARM_TR_REAL_LEFT_FR * span2,
-                    arm_right = ARM_TR_REAL_RIGHT_FR * span2,
-                    label = fmt_p_label(p_cre_trt_vs_real), cex = 0.92)
-  add_sq_bracket_lr(bp2[1], bp2[3], y_top = ytop2b,
-                    arm_left = ARM_TR_GEN_LEFT_FR * span2,
-                    arm_right = ARM_TR_GEN_RIGHT_FR * span2,
-                    label = fmt_p_label(p_cre_trt_vs_gen),  cex = 0.92)
+  treatment_subset <- subset_compound_time(
+    treatment_df,
+    treatment_compound_col,
+    treatment_time_col,
+    TARGET_COMPOUND,
+    TARGET_TIME
+  )
 
-  # Shared title
-  title_str <- paste0(compound_lbl, " — ", time_lbl)
-  mtext(ucfirst(title_str), outer = TRUE, cex = 1.25, line = 0.9, font = 2)
+  control_subset <- subset_compound_time(
+    control_df,
+    control_compound_col,
+    control_time_col,
+    TARGET_COMPOUND,
+    TARGET_TIME
+  )
 
-  ok <- TRUE
-},
-error = function(e) message("Plotting error: ", conditionMessage(e)),
-finally = {
-  if (length(dev.list())) try(invisible(dev.off()), silent = TRUE)
-})
+  generated_subset <- subset_compound_time(
+    generated_df,
+    generated_compound_col,
+    generated_time_col,
+    TARGET_COMPOUND,
+    TARGET_TIME
+  )
 
-if (ok && file.exists(out_file)) {
-  message("Saved: ", normalizePath(out_file, winslash = "/"))
-} else {
-  stop("TIFF not saved. Check write permissions for: ", out_dir,
-       "\nWorking dir: ", getwd())
+  if (nrow(treatment_subset) == 0) {
+    stop("No treatment rows found for ", TARGET_COMPOUND, " at ", TARGET_TIME, ".")
+  }
+  if (nrow(control_subset) == 0) {
+    stop("No real-control rows found for ", TARGET_COMPOUND, " at ", TARGET_TIME, ".")
+  }
+  if (nrow(generated_subset) == 0) {
+    stop("No GanCtrl rows found for ", TARGET_COMPOUND, " at ", TARGET_TIME, ".")
+  }
+
+  endpoints <- names(feature_specs)
+
+  ratio_real <- vapply(
+    endpoints,
+    function(endpoint) {
+      ratio_of_means(
+        treatment_subset[[treatment_features[[endpoint]]]],
+        control_subset[[control_features[[endpoint]]]]
+      )
+    },
+    numeric(1)
+  )
+
+  ratio_ganctrl <- vapply(
+    endpoints,
+    function(endpoint) {
+      ratio_of_means(
+        treatment_subset[[treatment_features[[endpoint]]]],
+        generated_subset[[generated_features[[endpoint]]]]
+      )
+    },
+    numeric(1)
+  )
+
+  rbind(
+    "Treatment / Real Control" = ratio_real,
+    "Treatment / GanCtrl" = ratio_ganctrl
+  )
 }
+
+plot_ratio_bars <- function(ratio_matrix, output_file) {
+  y_lim <- RATIO_YLIM
+
+  if (is.null(y_lim)) {
+    ymax <- suppressWarnings(max(ratio_matrix, na.rm = TRUE))
+
+    if (!is.finite(ymax) || ymax <= 0) {
+      ymax <- 1
+    }
+
+    y_lim <- c(0, ymax * 1.25)
+  }
+
+  tiff(
+    filename = output_file,
+    width = 8.5,
+    height = 7.0,
+    units = "in",
+    res = 600,
+    compression = "lzw"
+  )
+
+  old_par <- par(no.readonly = TRUE)
+  on.exit({
+    par(old_par)
+    dev.off()
+  }, add = TRUE)
+
+  par(
+    mar = c(5.2, 5.0, 3.2, 1.2),
+    oma = c(0, 0, 0, 0),
+    family = "sans"
+  )
+
+  barplot(
+    ratio_matrix,
+    beside = TRUE,
+    col = COLORS,
+    border = NA,
+    width = BAR_WIDTH,
+    ylim = y_lim,
+    ylab = "Ratio of means",
+    xlab = "",
+    names.arg = colnames(ratio_matrix),
+    cex.names = LABEL_CEX,
+    cex.axis = AXIS_CEX,
+    cex.lab = LABEL_CEX,
+    font.axis = 1,
+    font.lab = 1,
+    family = "sans",
+    las = 1
+  )
+
+  box(lwd = BOX_LWD)
+
+  legend(
+    "topright",
+    legend = rownames(ratio_matrix),
+    fill = COLORS,
+    border = NA,
+    bty = "n",
+    cex = LEGEND_CEX,
+    text.font = 1
+  )
+
+  plot_title <- paste0(TARGET_COMPOUND, " - ", TARGET_TIME)
+  title(
+    main = capitalize_first(plot_title),
+    cex.main = TITLE_CEX,
+    font.main = 2,
+    family = "sans",
+    line = 1.0
+  )
+}
+
+# =============================================================================
+# Main analysis
+# =============================================================================
+
+main <- function() {
+  check_input_files(c(CONTROL_FILE, TREATMENT_FILE, GENERATED_FILE))
+
+  control <- suppressMessages(
+    read_csv(CONTROL_FILE, show_col_types = FALSE, progress = FALSE)
+  )
+  treatment <- suppressMessages(
+    read_csv(TREATMENT_FILE, show_col_types = FALSE, progress = FALSE)
+  )
+  generated <- suppressMessages(
+    read_csv(GENERATED_FILE, show_col_types = FALSE, progress = FALSE)
+  )
+
+  real <- bind_rows(control, treatment)
+  real <- keep_clinical_pathology_columns(real)
+
+  generated <- harmonize_generated_values(generated)
+
+  if (!"DOSE_LEVEL" %in% names(real)) {
+    stop("DOSE_LEVEL is missing from the real-data inputs.")
+  }
+  if (!"DOSE_LEVEL" %in% names(generated)) {
+    stop("DOSE_LEVEL is missing from the generated-control input.")
+  }
+
+  control_df <- real %>% filter(.data[["DOSE_LEVEL"]] == "Control")
+  treatment_df <- real %>% filter(.data[["DOSE_LEVEL"]] == "High")
+  generated_df <- generated %>% filter(.data[["DOSE_LEVEL"]] == "High")
+
+  ratio_matrix <- calculate_ratio_matrix(
+    treatment_df,
+    control_df,
+    generated_df
+  )
+
+  cat("Ratio of means:\n")
+  print(round(ratio_matrix, 4))
+
+  plot_ratio_bars(ratio_matrix, OUTPUT_FILE)
+
+  cat("\nSaved plot:\n", normalizePath(OUTPUT_FILE, winslash = "/"), "\n")
+}
+
+main()

@@ -111,8 +111,8 @@ To benchmark GanCtrl against current virtual control group (VCG) approaches, VCG
 For each test group, the VCG contained the same number of animals as the corresponding real concurrent control group. Sampling was repeated **100 times** using independent random draws from the eligible historical control pool.
 
 **Files**:
-- [`train_concordnace.py`](./evaluation/train_concordance.py) - Generates VCGs by matching historical controls on sacrifice time, vehicle, and laboratory.
-- [`train_concordnace.py`](./evaluation/train_concordance.py) - Generates lab-relaxed VCGs (VCG-LR) by matching historical controls on sacrifice time and vehicle while allowing controls from different laboratories.
+- [`vcg_baseline.py`](./vcg/vcg_baseline.py) - Generates VCGs by matching historical controls on sacrifice time, vehicle, and laboratory.
+- [`vcg-lr_baseline.py`](./vcg/vcg-lr_baseline.py) - Generates lab-relaxed VCGs (VCG-LR) by matching historical controls on sacrifice time and vehicle while allowing controls from different laboratories.
 
 
 ---

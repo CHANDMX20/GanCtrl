@@ -13,7 +13,7 @@ GanCtrl is trained on high-dose treatment samples and couples a context-conditio
   - [GanCtrl Model Development, Training & Predictions](#ganctrl-model-development-training--predictions)
   - [GanCtrl versus Real control](#ganctrl-versus-real-control)
   - [Toxicity Assessment](#toxicity-assessment)
-  - [Literature Validation](#literature-validation)
+  - [VCG Approach](#vcg-approach)
 - [Data Files](#data-files)
 - [Installation](#installation)
 - [License](#license)
@@ -78,6 +78,7 @@ We also evaluated whether replacing real controls with synthetic controls preser
 **Files**:
 
  - [`co-elevation.py`](./evaluation/co-elevation.py)- Performs statistical testing and evaluates agreement of co-elevation calls between real- and synthetic-control analyses.    
+
 ---
 
 ### **Toxicity Assessment**
@@ -97,6 +98,22 @@ We first perform concordance analysis on the **training set** to calibrate a z-s
 
 This part of the pipeline is intended to answer:  
 > *“If I replace the concurrent control arm with GanCtrl-generated synthetic controls, do I arrive at the same toxicological conclusions?”*
+
+---
+
+### **VCG Approach**
+
+To benchmark GanCtrl against current virtual control group (VCG) approaches, VCGs were constructed from historical control data (HCD) using training-set concurrent controls. Historical controls were matched to each test compound–time group based on study metadata, with controls from the same compound excluded to prevent information leakage. Two VCG configurations were evaluated:
+
+- **VCG** - Historical controls were matched on sacrifice time, vehicle, and laboratory.
+- **VCG-LR** - A lab-relaxed VCG in which historical controls were matched on sacrifice time and vehicle but could originate from different laboratories, approximating a mixed-laboratory historical control setting.
+- 
+For each test group, the VCG contained the same number of animals as the corresponding real concurrent control group. Sampling was repeated **100 times** using independent random draws from the eligible historical control pool.
+
+**Files**:
+- [`train_concordnace.py`](./evaluation/train_concordance.py) - Generates VCGs by matching historical controls on sacrifice time, vehicle, and laboratory.
+- [`train_concordnace.py`](./evaluation/train_concordance.py) - Generates lab-relaxed VCGs (VCG-LR) by matching historical controls on sacrifice time and vehicle while allowing controls from different laboratories.
+
 
 ---
 

@@ -1,6 +1,6 @@
 # ***GanCtrl***: A Generative AI Approach to Derive Study-Aligned Synthetic Controls for Reducing Concurrent Control Animal Use
 
-[![DOI](https://img.shields.io/badge/DOI-10.1093/toxsci/kfaf099-blue)](https://doi.org/10.1093/toxsci/kfag099)
+[![DOI](https://img.shields.io/badge/DOI-10.1093/toxsci/kfag099-blue)](https://doi.org/10.1093/toxsci/kfag099)
 
 *GanCtrl* (GAN-based synthetic control) is a **conditional VAE–GAN** framework that translates treatment-derived clinical-pathology profiles into their time-matched control equivalents—synthetic controls using the Open TG-GATEs (Toxicogenomics Project-Genomics Assisted Toxicity Evaluation System) rat *in vivo* repeat-dose data across 38 clinical pathology measurements. 
 

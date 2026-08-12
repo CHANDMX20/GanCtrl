@@ -1,9 +1,7 @@
-# ***GanCtrl***
-
-### A Generative AI Approach to Derive Study-Aligned Synthetic Controls for Reducing Concurrent Control Animal Use
+<h1 align="center"><i>GanCtrl</i></h1>
 
 <p align="center">
-  <strong>Generating study-aligned synthetic control clinical-pathology profiles from treatment animals using a conditional VAE-GAN framework</strong>
+  <strong>Study-aligned synthetic controls for preclinical toxicology using a conditional VAE-GAN</strong>
 </p>
 
 <p align="center">
@@ -16,13 +14,6 @@
 </p>
 
 <p align="center">
-  <strong>Code</strong> &nbsp;•&nbsp;
-  <strong>Data</strong> &nbsp;•&nbsp;
-  <strong>Reproducibility</strong> &nbsp;•&nbsp;
-  <strong>Toxicological Evaluation</strong>
-</p>
-
-<p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> •
   <a href="#workflow--scripts"><strong>Workflow & Scripts</strong></a> •
   <a href="#methods"><strong>Methods</strong></a> •
@@ -32,45 +23,38 @@
 
 ---
 
-## Overview
-
-***GanCtrl*** (**GAN-based synthetic control**) is a **conditional VAE-GAN** framework that translates high-dose treatment-derived clinical-pathology profiles into their **time-matched synthetic control equivalents**.
-
-The framework was developed using the **Open TG-GATEs** rat *in vivo* repeat-dose dataset across **38 clinical pathology measurements**.
-
-GanCtrl combines a context-conditioned encoder, an attention-aware biologically informed decoder, and an adversarial discriminator to generate physiologically coherent synthetic controls while preserving biologically relevant relationships among clinical pathology measurements.
-
-> **Paper:** *Toxicological Sciences* — [10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)  
-> **Data:** Zenodo — [10.5281/zenodo.17883691](https://doi.org/10.5281/zenodo.17883691)
-
----
-
-## Study Design
-
 <p align="center">
   <img src="plots/study_design.png" alt="GanCtrl study design and architecture" width="900">
 </p>
 
 <p align="center">
-  <em>Treatment-derived clinical-pathology profiles are translated into study-aligned synthetic controls for downstream toxicological evaluation.</em>
+  <em>GanCtrl generates time-matched synthetic control profiles from treatment-derived clinical pathology data.</em>
 </p>
+
+---
+
+## Overview
+
+***GanCtrl*** (**GAN-based synthetic control**) is a **conditional VAE-GAN** framework that translates high-dose treatment-derived clinical-pathology profiles into their **time-matched control equivalents**.
+
+Developed using the **Open TG-GATEs** rat *in vivo* repeat-dose dataset, GanCtrl models **38 clinical pathology measurements** using a context-conditioned encoder, an attention-aware biologically informed decoder, and an adversarial discriminator.
+
+The framework is designed to generate physiologically coherent synthetic controls while preserving biologically relevant relationships required for downstream toxicological evaluation.
 
 ---
 
 ## GanCtrl at a Glance
 
-|                           |                                                                     |
-| ------------------------- | ------------------------------------------------------------------- |
-| **Model**                 | Conditional VAE-GAN                                                 |
-| **Input**                 | High-dose treatment clinical-pathology profiles                     |
-| **Output**                | Time-matched synthetic control profiles                             |
-| **Dataset**               | Open TG-GATEs rat *in vivo* repeat-dose studies                     |
-| **Measurements**          | 38 clinical pathology endpoints                                     |
-| **Conditioning**          | Body weight, timepoint, replicate identity, study-specific clusters |
-| **Agreement evaluation**  | Cosine similarity and RMSE                                          |
-| **Biological evaluation** | Hepatotoxicity and nephrotoxicity co-elevation                      |
-| **Toxicity evaluation**   | Real-control vs synthetic-control concordance                       |
-| **Benchmarks**            | Inter-laboratory, intra-laboratory, replicate control, VCG, VCG-LR  |
+| | |
+|---|---|
+| **Model** | Conditional VAE-GAN |
+| **Input** | High-dose treatment clinical-pathology profiles |
+| **Output** | Time-matched synthetic control profiles |
+| **Dataset** | Open TG-GATEs rat *in vivo* repeat-dose studies |
+| **Measurements** | 38 clinical pathology endpoints |
+| **Conditioning** | Body weight, timepoint, replicate identity, study-specific clusters |
+| **Evaluation** | Cosine similarity, RMSE, biological co-elevation, toxicity concordance |
+| **Benchmarks** | Inter-laboratory, intra-laboratory, replicate control, VCG, VCG-LR |
 
 ---
 

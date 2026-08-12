@@ -5,7 +5,6 @@
 </p>
 
 <p align="center">
-
 [![Paper DOI](https://img.shields.io/badge/Paper-10.1093%2Ftoxsci%2Fkfag099-2F6B9A)](https://doi.org/10.1093/toxsci/kfag099)
 [![Data DOI](https://img.shields.io/badge/Data-10.5281%2Fzenodo.17883691-1682D4)](https://doi.org/10.5281/zenodo.17883691)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)

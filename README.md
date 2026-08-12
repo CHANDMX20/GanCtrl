@@ -40,7 +40,7 @@ The framework was developed using the **Open TG-GATEs** rat *in vivo* repeat-dos
 
 GanCtrl combines a context-conditioned encoder, an attention-aware biologically informed decoder, and an adversarial discriminator to generate physiologically coherent synthetic controls while preserving biologically relevant relationships among clinical pathology measurements.
 
-> **Paper:** *Toxicological Sciences* — [10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)
+> **Paper:** *Toxicological Sciences* — [10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)  
 > **Data:** Zenodo — [10.5281/zenodo.17883691](https://doi.org/10.5281/zenodo.17883691)
 
 ---
@@ -255,11 +255,7 @@ The concordance analysis evaluates whether synthetic controls reproduce the **sa
 
 For each compound-time group and clinical pathology measurement:
 
-[
-z =
-\frac{x_{\text{treatment}}-\mu_{\text{control}}}
-{\sigma_{\text{control}}}
-]
+  $z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$
 
 The decision threshold is:
 
@@ -274,12 +270,7 @@ Synthetic-control classifications are compared with real-control classifications
 * False positives (**FP**)
 * False negatives (**FN**)
 
-[
-\text{Concordance Accuracy}
-===========================
-
-\frac{TP+TN}{TP+TN+FP+FN}
-]
+  $\text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN}$
 
 > **Primary question:** If the concurrent control arm is replaced with GanCtrl-generated synthetic controls, are the same toxicological conclusions reached?
 

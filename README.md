@@ -30,7 +30,7 @@ The framework was developed using the **Open TG-GATEs** rat *in vivo* repeat-dos
 
 GanCtrl combines a context-conditioned encoder, an attention-aware biologically informed decoder, and an adversarial discriminator to generate physiologically coherent synthetic controls while preserving biologically relevant relationships among clinical pathology measurements.
 
-> **Paper:** *Toxicological Sciences* — [10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)
+> **Paper:** *Toxicological Sciences* — [10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)  
 > **Data:** Zenodo — [10.5281/zenodo.17883691](https://doi.org/10.5281/zenodo.17883691)
 
 ---

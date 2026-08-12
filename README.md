@@ -273,10 +273,7 @@ The complete analysis can be viewed as the following sequence:
                           │
                           ▼
                 Preprocessed Inputs
-                          │
-                          ▼
-                    Zenodo Data
-                          │
+                          │                          │
                           ▼
                    GanCtrl Training
                           │

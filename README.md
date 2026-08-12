@@ -351,29 +351,90 @@ GanCtrl performance is assessed by comparing generated synthetic controls with c
 - **Cosine similarity**
 - **Root mean squared error (RMSE)**
 
-GanCtrl performance is interpreted relative to three real-control benchmarks.
+GanCtrl performance is interpreted relative to three real-control benchmarks: **inter-laboratory**, **intra-laboratory**, and **replicate-control** agreement.
+
+---
 
 ### Inter-laboratory Baseline
 
-Cross-study measurements using:
+The **inter-laboratory baseline** represents cross-study agreement between real controls with:
 
 - The same vehicle
 - Different laboratories
 
+**Scripts:**
+
+- [`baseline/interlab_cosine.py`](./baseline/interlab_cosine.py) — Calculates cosine similarity for the inter-laboratory real-control baseline.
+- [`baseline/interlab_rmse.py`](./baseline/interlab_rmse.py) — Calculates RMSE for the inter-laboratory real-control baseline.
+
+```bash
+python baseline/interlab_cosine.py
+python baseline/interlab_rmse.py
+```
+
+---
+
 ### Intra-laboratory Baseline
 
-Within-study measurements using:
+The **intra-laboratory baseline** represents within-study agreement between real controls with:
 
 - The same vehicle
 - The same laboratory
 
+**Scripts:**
+
+- [`baseline/intralab_cosine.py`](./baseline/intralab_cosine.py) — Calculates cosine similarity for the intra-laboratory real-control baseline.
+- [`baseline/intralab_rmse.py`](./baseline/intralab_rmse.py) — Calculates RMSE for the intra-laboratory real-control baseline.
+
+```bash
+python baseline/intralab_cosine.py
+python baseline/intralab_rmse.py
+```
+
+---
+
 ### Replicate Control Baseline
 
-Agreement between biological replicates within a treatment, providing a benchmark for real biological performance.
+The **replicate-control baseline** measures agreement between biological replicates within a treatment, providing a benchmark for the level of agreement expected from real biological samples.
 
-### GanCtrl
+**Scripts:**
 
-Agreement between each generated synthetic profile and its corresponding real control profile.
+- [`baseline/replicate_control_cosine.py`](./baseline/replicate_control_cosine.py) — Calculates cosine similarity between biological replicates.
+- [`baseline/replicate_control_rmse.py`](./baseline/replicate_control_rmse.py) — Calculates RMSE between biological replicates.
+
+```bash
+python baseline/replicate_control_cosine.py
+python baseline/replicate_control_rmse.py
+```
+
+---
+
+### GanCtrl Synthetic Controls
+
+GanCtrl performance is evaluated by comparing each generated **synthetic control profile** with its corresponding **real control profile**.
+
+**Scripts:**
+
+- [`evaluation/cosine.py`](./evaluation/cosine.py) — Calculates cosine similarity between GanCtrl-generated synthetic controls and corresponding real controls.
+- [`evaluation/rmse.py`](./evaluation/rmse.py) — Calculates RMSE between GanCtrl-generated synthetic controls and corresponding real controls.
+
+```bash
+python evaluation/cosine.py
+python evaluation/rmse.py
+```
+
+---
+
+### Evaluation Summary
+
+| Comparison | Cosine Similarity | RMSE | Purpose |
+|---|---|---|---|
+| **Inter-laboratory** | [`interlab_cosine.py`](./baseline/interlab_cosine.py) | [`interlab_rmse.py`](./baseline/interlab_rmse.py) | Cross-study, cross-laboratory real-control benchmark |
+| **Intra-laboratory** | [`intralab_cosine.py`](./baseline/intralab_cosine.py) | [`intralab_rmse.py`](./baseline/intralab_rmse.py) | Within-study, same-laboratory real-control benchmark |
+| **Replicate Control** | [`replicate_control_cosine.py`](./baseline/replicate_control_cosine.py) | [`replicate_control_rmse.py`](./baseline/replicate_control_rmse.py) | Biological replicate benchmark |
+| **GanCtrl** | [`cosine.py`](./evaluation/cosine.py) | [`rmse.py`](./evaluation/rmse.py) | Synthetic-control vs real-control agreement |
+
+Together, these comparisons place GanCtrl performance in the context of the agreement observed between different sources of **real control data**.
 
 ---
 

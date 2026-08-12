@@ -58,7 +58,7 @@ The framework is designed to generate physiologically coherent synthetic control
 
 ---
 
-# Quick Start
+## Quick Start
 
 ### 1. Clone GanCtrl
 
@@ -87,7 +87,7 @@ All scripts required for these workflows are listed below.
 
 ---
 
-# Workflow & Scripts
+## Workflow & Scripts
 
 ```text
 Open TG-GATEs
@@ -129,7 +129,7 @@ Synthetic Controls
 
 ---
 
-# Methods
+## Methods
 
 Expand the sections below for methodological details.
 
@@ -297,7 +297,7 @@ For each test group:
 
 ---
 
-# Data & Outputs
+## Data & Outputs
 
 All GanCtrl data-related information is consolidated in this section.
 
@@ -429,7 +429,7 @@ INDIVIDUAL_ID
 
 ---
 
-# Repository Organization
+## Repository Organization
 
 <details>
 <summary><strong>📁 Show repository structure</strong></summary>
@@ -455,7 +455,7 @@ Individual scripts are listed in the [Workflow & Scripts](#workflow--scripts) se
 
 ---
 
-# Environment
+## Environment
 
 | Software           | Version |
 | ------------------ | ------: |
@@ -468,7 +468,7 @@ Additional Python and R dependencies are imported within the corresponding analy
 
 ---
 
-# Reproducibility
+## Reproducibility
 
 GanCtrl supports two reproducibility paths.
 
@@ -511,18 +511,7 @@ The repository uses fixed random seeds, deterministic TensorFlow operations, exp
 
 ---
 
-# Research Resources
-
-| Resource                 | Access                                                            |
-| ------------------------ | ----------------------------------------------------------------- |
-| 📄 **Published paper**   | [Toxicological Sciences](https://doi.org/10.1093/toxsci/kfag099)  |
-| 📦 **Preprocessed data** | [Zenodo](https://doi.org/10.5281/zenodo.17883691)                 |
-| 💻 **Source code**       | [GanCtrl GitHub repository](https://github.com/CHANDMX20/GanCtrl) |
-| 📜 **License**           | [MIT License](LICENSE)                                            |
-
----
-
-# Citation
+## Citation
 
 If you use **GanCtrl** in your research, please cite the associated paper and dataset.
 
@@ -541,7 +530,7 @@ https://doi.org/10.5281/zenodo.17883691
 
 ---
 
-# License
+## License
 
 This project is licensed under the **MIT License**.
 

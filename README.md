@@ -1,7 +1,7 @@
 <h1 align="center"><i>GanCtrl</i></h1>
 
 <p align="center">
-  <strong>Study-aligned synthetic controls for preclinical toxicology using a conditional VAE-GAN</strong>
+  <strong>Study-aligned synthetic controls from time-matched treatment data for preclinical toxicology using generative AI</strong>
 </p>
 
 <p align="center">

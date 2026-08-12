@@ -256,9 +256,6 @@ GanCtrl/
 │   ├── generated_predictions_merged_train.csv
 │   └── generated_predictions_merged_test.csv
 │
-├── plots/
-│   └── study_design.png
-│
 ├── README.md
 └── LICENSE
 ```

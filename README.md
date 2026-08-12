@@ -493,11 +493,7 @@ The calibrated threshold is fixed and applied to the independent test set.
 
 For each compound-time group and clinical pathology measurement, treatment samples are standardized relative to the corresponding control source:
 
-\[
-z =
-\frac{x_{\text{treatment}}-\mu_{\text{control}}}
-{\sigma_{\text{control}}}
-\]
+$z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$
 
 Synthetic-control-referenced classifications are compared with real-control-referenced classifications using:
 
@@ -508,11 +504,7 @@ Synthetic-control-referenced classifications are compared with real-control-refe
 
 Concordance accuracy is calculated as:
 
-\[
-\text{Concordance Accuracy}
-=
-\frac{TP+TN}{TP+TN+FP+FN}
-\]
+  $\text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN}$
 
 The relevant scripts are:
 

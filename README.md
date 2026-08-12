@@ -1,4 +1,6 @@
-# ***GanCtrl***: A Generative AI Approach to Derive Study-Aligned Synthetic Controls for Reducing Concurrent Control Animal Use
+# ***GanCtrl***
+
+### A Generative AI Approach to Derive Study-Aligned Synthetic Controls for Reducing Concurrent Control Animal Use
 
 <p align="center">
   <strong>Generating study-aligned synthetic control clinical-pathology profiles from treatment animals using a conditional VAE-GAN framework</strong>
@@ -6,17 +8,25 @@
 
 <p align="center">
 
-[![Paper DOI](https://img.shields.io/badge/Paper_DOI-10.1093%2Ftoxsci%2Fkfag099-blue)](https://doi.org/10.1093/toxsci/kfag099)
-[![Data DOI](https://img.shields.io/badge/Data_DOI-10.5281%2Fzenodo.17883691-blue)](https://doi.org/10.5281/zenodo.17883691)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Paper DOI](https://img.shields.io/badge/Paper-10.1093%2Ftoxsci%2Fkfag099-2F6B9A)](https://doi.org/10.1093/toxsci/kfag099)
+[![Data DOI](https://img.shields.io/badge/Data-10.5281%2Fzenodo.17883691-1682D4)](https://doi.org/10.5281/zenodo.17883691)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.11.7-blue)
 
+</p>
+
+<p align="center">
+  <strong>Code</strong> &nbsp;•&nbsp;
+  <strong>Data</strong> &nbsp;•&nbsp;
+  <strong>Reproducibility</strong> &nbsp;•&nbsp;
+  <strong>Toxicological Evaluation</strong>
 </p>
 
 <p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> •
   <a href="#workflow--scripts"><strong>Workflow & Scripts</strong></a> •
-  <a href="#data--outputs"><strong>Data & Outputs</strong></a> •
   <a href="#methods"><strong>Methods</strong></a> •
+  <a href="#data--outputs"><strong>Data & Outputs</strong></a> •
   <a href="#citation"><strong>Citation</strong></a>
 </p>
 
@@ -30,7 +40,7 @@ The framework was developed using the **Open TG-GATEs** rat *in vivo* repeat-dos
 
 GanCtrl combines a context-conditioned encoder, an attention-aware biologically informed decoder, and an adversarial discriminator to generate physiologically coherent synthetic controls while preserving biologically relevant relationships among clinical pathology measurements.
 
-> **Paper:** *Toxicological Sciences* — [10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)  
+> **Paper:** *Toxicological Sciences* — [10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)
 > **Data:** Zenodo — [10.5281/zenodo.17883691](https://doi.org/10.5281/zenodo.17883691)
 
 ---
@@ -42,58 +52,58 @@ GanCtrl combines a context-conditioned encoder, an attention-aware biologically 
 </p>
 
 <p align="center">
-  <em>GanCtrl translates treatment-derived clinical-pathology profiles into study-aligned synthetic controls for downstream toxicological evaluation.</em>
+  <em>Treatment-derived clinical-pathology profiles are translated into study-aligned synthetic controls for downstream toxicological evaluation.</em>
 </p>
 
 ---
 
-## At a Glance
+## GanCtrl at a Glance
 
-|                  | GanCtrl                                                                |
-| ---------------- | ---------------------------------------------------------------------- |
-| **Framework**    | Conditional VAE-GAN                                                    |
-| **Input**        | High-dose treatment clinical-pathology profiles                        |
-| **Output**       | Time-matched synthetic control profiles                                |
-| **Dataset**      | Open TG-GATEs rat *in vivo* repeat-dose studies                        |
-| **Measurements** | 38 clinical pathology endpoints                                        |
-| **Conditioning** | Body weight, timepoint, replicate identity, study-specific clusters    |
-| **Evaluation**   | Cosine similarity, RMSE, biological co-elevation, toxicity concordance |
-| **Benchmarks**   | Inter-laboratory, intra-laboratory, replicate control, VCG, VCG-LR     |
+|                           |                                                                     |
+| ------------------------- | ------------------------------------------------------------------- |
+| **Model**                 | Conditional VAE-GAN                                                 |
+| **Input**                 | High-dose treatment clinical-pathology profiles                     |
+| **Output**                | Time-matched synthetic control profiles                             |
+| **Dataset**               | Open TG-GATEs rat *in vivo* repeat-dose studies                     |
+| **Measurements**          | 38 clinical pathology endpoints                                     |
+| **Conditioning**          | Body weight, timepoint, replicate identity, study-specific clusters |
+| **Agreement evaluation**  | Cosine similarity and RMSE                                          |
+| **Biological evaluation** | Hepatotoxicity and nephrotoxicity co-elevation                      |
+| **Toxicity evaluation**   | Real-control vs synthetic-control concordance                       |
+| **Benchmarks**            | Inter-laboratory, intra-laboratory, replicate control, VCG, VCG-LR  |
 
 ---
 
 # Quick Start
 
-### 1. Clone the repository
+### 1. Clone GanCtrl
 
 ```bash
 git clone https://github.com/CHANDMX20/GanCtrl.git
 cd GanCtrl
 ```
 
-### 2. Obtain the preprocessed input data
+### 2. Obtain the input data
 
-The training and held-out test datasets used by GanCtrl are available on Zenodo:
+The preprocessed training and held-out test datasets used by GanCtrl are available through Zenodo:
 
-**[Download GanCtrl input data](https://doi.org/10.5281/zenodo.17883691)**
+### **[Download GanCtrl Input Data](https://doi.org/10.5281/zenodo.17883691)**
 
-Configure the input/output paths in the relevant scripts for your local environment.
+Configure the required input and output paths in the relevant scripts for your local environment.
 
-### 3. Choose how you want to reproduce the analysis
+### 3. Choose a reproducibility path
 
-| Goal                                   | Start from                                             |
-| -------------------------------------- | ------------------------------------------------------ |
-| **Train GanCtrl from the beginning**   | Zenodo input data                                      |
-| **Generate new synthetic controls**    | Trained GanCtrl checkpoints                            |
-| **Reproduce downstream analyses only** | Generated prediction files already provided in `data/` |
+| Goal                                   | Start from                                |
+| -------------------------------------- | ----------------------------------------- |
+| **Train GanCtrl from the beginning**   | Preprocessed Zenodo inputs                |
+| **Generate synthetic controls**        | Trained GanCtrl checkpoints               |
+| **Reproduce downstream analyses only** | Generated predictions included in `data/` |
 
-The scripts required for each stage are listed below.
+All scripts required for these workflows are listed below.
 
 ---
 
 # Workflow & Scripts
-
-The complete GanCtrl workflow is:
 
 ```text
 Open TG-GATEs
@@ -119,36 +129,34 @@ Synthetic Controls
 
 > Scripts can be executed with `python <script-path>` after configuring the required local input/output paths.
 
-| Stage  | Analysis                          | Script(s)                                                                                                                                                       |
-| ------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1**  | GanCtrl model training            | [`training/ganctrl_training.py`](./training/ganctrl_training.py)                                                                                                |
-| **2**  | Generate synthetic controls       | [`training/train_test_samples.py`](./training/train_test_samples.py)                                                                                            |
-| **3A** | Inter-laboratory agreement        | [`baseline/interlab_cosine.py`](./baseline/interlab_cosine.py) · [`baseline/interlab_rmse.py`](./baseline/interlab_rmse.py)                                     |
-| **3B** | Intra-laboratory agreement        | [`baseline/intralab_cosine.py`](./baseline/intralab_cosine.py) · [`baseline/intralab_rmse.py`](./baseline/intralab_rmse.py)                                     |
-| **3C** | Replicate-control agreement       | [`baseline/replicate_control_cosine.py`](./baseline/replicate_control_cosine.py) · [`baseline/replicate_control_rmse.py`](./baseline/replicate_control_rmse.py) |
-| **3D** | GanCtrl vs real-control agreement | [`evaluation/cosine.py`](./evaluation/cosine.py) · [`evaluation/rmse.py`](./evaluation/rmse.py)                                                                 |
-| **4**  | Biological co-elevation analysis  | [`evaluation/co-elevation.py`](./evaluation/co-elevation.py)                                                                                                    |
-| **5A** | Concordance threshold calibration | [`evaluation/train_concordance.py`](./evaluation/train_concordance.py)                                                                                          |
-| **5B** | Held-out toxicity concordance     | [`evaluation/test_concordance.py`](./evaluation/test_concordance.py)                                                                                            |
-| **6A** | VCG benchmark                     | [`vcg/vcg_baseline.py`](./vcg/vcg_baseline.py)                                                                                                                  |
-| **6B** | Laboratory-relaxed VCG benchmark  | [`vcg/vcg-lr_baseline.py`](./vcg/vcg-lr_baseline.py)                                                                                                            |
+| Stage  | Analysis                          | Script(s)                                                                                                                                     |
+| ------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1**  | GanCtrl training                  | [`training/ganctrl_training.py`](./training/ganctrl_training.py)                                                                              |
+| **2**  | Synthetic-control generation      | [`training/train_test_samples.py`](./training/train_test_samples.py)                                                                          |
+| **3A** | Inter-laboratory agreement        | [`interlab_cosine.py`](./baseline/interlab_cosine.py) · [`interlab_rmse.py`](./baseline/interlab_rmse.py)                                     |
+| **3B** | Intra-laboratory agreement        | [`intralab_cosine.py`](./baseline/intralab_cosine.py) · [`intralab_rmse.py`](./baseline/intralab_rmse.py)                                     |
+| **3C** | Replicate-control agreement       | [`replicate_control_cosine.py`](./baseline/replicate_control_cosine.py) · [`replicate_control_rmse.py`](./baseline/replicate_control_rmse.py) |
+| **3D** | GanCtrl vs real-control agreement | [`cosine.py`](./evaluation/cosine.py) · [`rmse.py`](./evaluation/rmse.py)                                                                     |
+| **4**  | Biological co-elevation           | [`co-elevation.py`](./evaluation/co-elevation.py)                                                                                             |
+| **5A** | Concordance threshold calibration | [`train_concordance.py`](./evaluation/train_concordance.py)                                                                                   |
+| **5B** | Held-out toxicity concordance     | [`test_concordance.py`](./evaluation/test_concordance.py)                                                                                     |
+| **6A** | VCG benchmark                     | [`vcg_baseline.py`](./vcg/vcg_baseline.py)                                                                                                    |
+| **6B** | Laboratory-relaxed VCG            | [`vcg-lr_baseline.py`](./vcg/vcg-lr_baseline.py)                                                                                              |
 
 ---
 
 # Methods
 
-The sections below summarize the main GanCtrl analyses. Expand a section for additional methodological detail.
+Expand the sections below for methodological details.
 
 <details>
-<summary><strong>🧠 GanCtrl model architecture and training</strong></summary>
+<summary><strong>🧠 GanCtrl architecture and training</strong></summary>
 
 <br>
 
-GanCtrl is a one-sided **conditional VAE-GAN** trained to map high-dose treatment profiles to their time-matched control equivalents.
+GanCtrl is a one-sided **conditional VAE-GAN** trained to map high-dose treatment clinical-pathology profiles to their time-matched control equivalents.
 
 ### Conditioning variables
-
-The model incorporates:
 
 * **Body weight**
 * **Timepoint**
@@ -157,15 +165,13 @@ The model incorporates:
 
 ### Training objectives
 
-GanCtrl combines:
-
 * **Variance-aware Gaussian negative log likelihood**
 * **Adversarial loss**
 * **TBIL range-constraint loss**
 * **Biological correlation-preservation loss**
 * **Batch-level mean matching**
 
-These components are designed to preserve organ-level biological patterns and realistic variation while generating physiologically coherent synthetic-control profiles.
+These components are designed to preserve organ-level biological relationships and realistic variability while generating physiologically coherent synthetic-control profiles.
 
 The implementation uses fixed random seeds and deterministic TensorFlow operations to support reproducibility.
 
@@ -178,28 +184,22 @@ The implementation uses fixed random seeds and deterministic TensorFlow operatio
 
 <br>
 
-GanCtrl-generated profiles are compared with corresponding real controls using:
+Generated synthetic controls are compared with corresponding real controls using:
 
 * **Cosine similarity**
 * **Root mean squared error (RMSE)**
 
-Performance is interpreted relative to three real-control benchmarks.
+GanCtrl is interpreted relative to three real-control benchmarks:
 
-### Inter-laboratory baseline
+### Inter-laboratory
 
-Cross-study real-control agreement using:
+Cross-study real-control agreement using the same vehicle across different laboratories.
 
-* The same vehicle
-* Different laboratories
+### Intra-laboratory
 
-### Intra-laboratory baseline
+Within-study real-control agreement using the same vehicle and laboratory.
 
-Within-study real-control agreement using:
-
-* The same vehicle
-* The same laboratory
-
-### Replicate-control baseline
+### Replicate control
 
 Agreement between biological replicates within a treatment, providing a benchmark for real biological variability.
 
@@ -216,27 +216,25 @@ Agreement between each generated synthetic-control profile and its corresponding
 
 <br>
 
-GanCtrl is evaluated for its ability to preserve biological inference for literature-anchored **hepatotoxicity** and **nephrotoxicity** responses.
+GanCtrl is evaluated for its ability to preserve literature-anchored **hepatotoxicity** and **nephrotoxicity** biological conclusions.
 
 Treatment-associated measurement elevations are identified using:
 
 * One-sided Welch t-tests
 * Benjamini-Hochberg false discovery rate correction
 
-Coordinated responses are evaluated for:
-
-### Liver-associated patterns
+### Coordinated liver responses
 
 * **ALT–AST**
 * **ALP–TBIL**
 * **ALP–GGT/GTP**
 * **ALT–AST–LDH**
 
-### Kidney-associated pattern
+### Coordinated kidney response
 
 * **BUN–CRE**
 
-Agreement between conclusions obtained using real and synthetic controls is evaluated using:
+Agreement between real- and synthetic-control conclusions is evaluated using:
 
 | Metric                | Definition                                                                              |
 | --------------------- | --------------------------------------------------------------------------------------- |
@@ -253,16 +251,21 @@ Agreement between conclusions obtained using real and synthetic controls is eval
 
 <br>
 
-The concordance analysis evaluates whether replacing real concurrent controls with GanCtrl synthetic controls produces the same **sample-level abnormal/normal toxicity classifications**.
+The concordance analysis evaluates whether synthetic controls reproduce the **sample-level abnormal/normal classifications** obtained using real concurrent controls.
 
-For each compound-time group and measurement:
+For each compound-time group and clinical pathology measurement:
 
-  $z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$
+[
+z =
+\frac{x_{\text{treatment}}-\mu_{\text{control}}}
+{\sigma_{\text{control}}}
+]
 
 The decision threshold is:
 
 1. Calibrated using the **training set**
-2. Fixed and evaluated on the **held-out test set**
+2. Fixed before evaluation
+3. Applied to the independent **held-out test set**
 
 Synthetic-control classifications are compared with real-control classifications using:
 
@@ -271,9 +274,12 @@ Synthetic-control classifications are compared with real-control classifications
 * False positives (**FP**)
 * False negatives (**FN**)
 
-Concordance accuracy is:
+[
+\text{Concordance Accuracy}
+===========================
 
-  $\text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN}$
+\frac{TP+TN}{TP+TN+FP+FN}
+]
 
 > **Primary question:** If the concurrent control arm is replaced with GanCtrl-generated synthetic controls, are the same toxicological conclusions reached?
 
@@ -292,7 +298,7 @@ Historical controls are drawn from training-set concurrent controls. Controls or
 
 ### VCG
 
-Historical controls are matched on:
+Matched on:
 
 * Sacrifice time
 * Vehicle
@@ -300,14 +306,14 @@ Historical controls are matched on:
 
 ### VCG-LR
 
-The laboratory-relaxed VCG is matched on:
+Matched on:
 
 * Sacrifice time
 * Vehicle
 
-Controls may originate from different laboratories.
+while allowing controls from different laboratories.
 
-For every test group:
+For each test group:
 
 * The VCG contains the same number of animals as the corresponding real concurrent control group.
 * Sampling is repeated **100 times** using independent draws from the eligible historical-control pool.
@@ -318,25 +324,25 @@ For every test group:
 
 # Data & Outputs
 
-All data-related information is collected here.
+All GanCtrl data-related information is consolidated in this section.
 
-## Raw data
+## Raw Open TG-GATEs Data
 
-GanCtrl was developed using rat *in vivo* repeat-dose data from **Open TG-GATEs**.
+GanCtrl was developed using rat *in vivo* repeat-dose clinical pathology data from **Open TG-GATEs**.
 
-Raw Open TG-GATEs data are **not redistributed in this repository** and can be obtained from:
+The raw Open TG-GATEs data are **not redistributed through this repository**.
 
 **[Open TG-GATEs Download Page](https://dbarchive.biosciencedbc.jp/en/open-tggates/download.html)**
 
 ---
 
-## Preprocessed GanCtrl inputs
+## Preprocessed GanCtrl Inputs
 
-The preprocessed training and held-out test data used directly by GanCtrl are distributed through Zenodo because of their size:
+The exact preprocessed training and held-out test inputs used by GanCtrl are distributed through Zenodo because of their size.
 
-### **[Download GanCtrl Inputs from Zenodo](https://doi.org/10.5281/zenodo.17883691)**
+### **[Download Preprocessed GanCtrl Inputs](https://doi.org/10.5281/zenodo.17883691)**
 
-The deposit contains treatment/control inputs, study metadata, and molecular descriptor features used by the model.
+The deposit contains treatment/control inputs, metadata, and molecular descriptor features required by the model.
 
 <details>
 <summary><strong>📂 Show principal input files</strong></summary>
@@ -354,34 +360,34 @@ repeat_test_control_2d.csv
 
 ---
 
-## Generated synthetic controls
+## Generated Synthetic Controls
 
 Generated decoded synthetic-control predictions are included in [`data/`](./data), allowing downstream analyses to be reproduced **without retraining GanCtrl**.
 
 <details>
-<summary><strong>📊 Show generated prediction files</strong></summary>
+<summary><strong>📊 Show prediction files</strong></summary>
 
 <br>
 
-| File                                                                                    | Description                                                               |
-| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [`generated_liver_train.csv`](data/generated_liver_train.csv)                           | Liver synthetic controls — training set                                   |
-| [`generated_liver_test.csv`](data/generated_liver_test.csv)                             | Liver synthetic controls — held-out test set                              |
-| [`generated_kidney_train.csv`](data/generated_kidney_train.csv)                         | Kidney synthetic controls — training set                                  |
-| [`generated_kidney_test.csv`](data/generated_kidney_test.csv)                           | Kidney synthetic controls — held-out test set                             |
-| [`generated_predictions_merged_train.csv`](data/generated_predictions_merged_train.csv) | Combined liver + kidney predictions for downstream training-set analyses  |
-| [`generated_predictions_merged_test.csv`](data/generated_predictions_merged_test.csv)   | Combined liver + kidney predictions for downstream held-out test analyses |
+| File                                                                                    | Description                                                    |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [`generated_liver_train.csv`](data/generated_liver_train.csv)                           | Liver synthetic controls — training set                        |
+| [`generated_liver_test.csv`](data/generated_liver_test.csv)                             | Liver synthetic controls — held-out test set                   |
+| [`generated_kidney_train.csv`](data/generated_kidney_train.csv)                         | Kidney synthetic controls — training set                       |
+| [`generated_kidney_test.csv`](data/generated_kidney_test.csv)                           | Kidney synthetic controls — held-out test set                  |
+| [`generated_predictions_merged_train.csv`](data/generated_predictions_merged_train.csv) | Combined liver + kidney predictions for training-set analyses  |
+| [`generated_predictions_merged_test.csv`](data/generated_predictions_merged_test.csv)   | Combined liver + kidney predictions for held-out test analyses |
 
 </details>
 
 ---
 
 <details>
-<summary><strong>🗂️ Show training and inference outputs</strong></summary>
+<summary><strong>💾 Show model and inference outputs</strong></summary>
 
 <br>
 
-Depending on the configuration, GanCtrl can produce:
+Depending on the training and inference configuration:
 
 ```text
 g_model1_*.h5
@@ -459,24 +465,22 @@ INDIVIDUAL_ID
 GanCtrl/
 │
 ├── training/      # Model training and synthetic-control generation
-├── evaluation/    # GanCtrl evaluation and toxicological analyses
+├── evaluation/    # Agreement and toxicological analyses
 ├── baseline/      # Real-control agreement benchmarks
-├── vcg/           # Historical-control VCG benchmarks
+├── vcg/           # Historical-control benchmarks
 ├── data/          # Generated synthetic-control predictions
 ├── plots/         # Study-design and supporting figures
 ├── README.md
 └── LICENSE
 ```
 
-Individual analysis scripts are listed once in the [Workflow & Scripts](#workflow--scripts) section above.
+Individual scripts are listed in the [Workflow & Scripts](#workflow--scripts) section.
 
 </details>
 
 ---
 
 # Environment
-
-GanCtrl was developed using:
 
 | Software           | Version |
 | ------------------ | ------: |
@@ -491,7 +495,11 @@ Additional Python and R dependencies are imported within the corresponding analy
 
 # Reproducibility
 
-GanCtrl supports two reproducibility paths:
+GanCtrl supports two reproducibility paths.
+
+<table>
+<tr>
+<td width="50%" valign="top">
 
 ### Full reproduction
 
@@ -505,15 +513,37 @@ Generate Synthetic Controls
 Run Evaluation Pipeline
 ```
 
-### Downstream analysis only
+</td>
+<td width="50%" valign="top">
+
+### Downstream reproduction
 
 ```text
-Provided Synthetic-Control Predictions
+Provided Predictions
       ↓
-Agreement + Biological + Toxicity Analyses
+Agreement Analysis
+      ↓
+Biological Evaluation
+      ↓
+Toxicity Evaluation
 ```
 
-The repository uses fixed random seeds, deterministic TensorFlow operations, explicit training/test splits, public input data, and provided synthetic-control predictions to support reproducibility.
+</td>
+</tr>
+</table>
+
+The repository uses fixed random seeds, deterministic TensorFlow operations, explicit training/test splits, publicly available input data, and provided synthetic-control predictions to support reproducibility.
+
+---
+
+# Research Resources
+
+| Resource                 | Access                                                            |
+| ------------------------ | ----------------------------------------------------------------- |
+| 📄 **Published paper**   | [Toxicological Sciences](https://doi.org/10.1093/toxsci/kfag099)  |
+| 📦 **Preprocessed data** | [Zenodo](https://doi.org/10.5281/zenodo.17883691)                 |
+| 💻 **Source code**       | [GanCtrl GitHub repository](https://github.com/CHANDMX20/GanCtrl) |
+| 📜 **License**           | [MIT License](LICENSE)                                            |
 
 ---
 
@@ -546,5 +576,5 @@ See the [`LICENSE`](LICENSE) file for details.
 
 <p align="center">
   <strong>GanCtrl</strong><br>
-  Generative AI for study-aligned synthetic controls in preclinical toxicology
+  <em>Generative AI for study-aligned synthetic controls in preclinical toxicology</em>
 </p>

@@ -257,11 +257,7 @@ The concordance analysis evaluates whether replacing real concurrent controls wi
 
 For each compound-time group and measurement:
 
-[
-z =
-\frac{x_{\text{treatment}}-\mu_{\text{control}}}
-{\sigma_{\text{control}}}
-]
+  $z = \dfrac{x_{\text{treatment}} - \mu_{\text{control}}}{\sigma_{\text{control}}}$
 
 The decision threshold is:
 
@@ -277,12 +273,7 @@ Synthetic-control classifications are compared with real-control classifications
 
 Concordance accuracy is:
 
-[
-\text{Concordance Accuracy}
-===========================
-
-\frac{TP+TN}{TP+TN+FP+FN}
-]
+  $\text{Concordance Accuracy} = \dfrac{TP + TN}{TP + TN + FP + FN}$
 
 > **Primary question:** If the concurrent control arm is replaced with GanCtrl-generated synthetic controls, are the same toxicological conclusions reached?
 

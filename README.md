@@ -69,11 +69,6 @@ The overall goal is to evaluate whether **GanCtrl-generated synthetic controls c
 | **Dataset** | Open TG-GATEs rat *in vivo* repeat-dose studies |
 | **Clinical pathology measurements** | 38 |
 | **Conditioning information** | Body weight, timepoint, replicate identity, and study-specific clusters |
-| **Primary agreement metrics** | Cosine similarity and RMSE |
-| **Biological evaluation** | Liver- and kidney-associated co-elevation patterns |
-| **Toxicity evaluation** | Real-control vs synthetic-control concordance |
-| **Historical-control benchmark** | VCG and VCG-LR |
-| **Primary organs evaluated** | Liver and kidney |
 
 ---
 

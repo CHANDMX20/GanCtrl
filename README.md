@@ -41,7 +41,7 @@ GanCtrl is trained on high-dose treatment samples and combines:
 The overall goal is to evaluate whether **GanCtrl-generated synthetic controls can reproduce real concurrent-control behavior sufficiently well to preserve downstream toxicological conclusions**.
 
 > **Paper:** Published in *Toxicological Sciences*  
-> **Paper DOI:** [https://doi.org/10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)  
+> **Paper DOI:** `[https://doi.org/10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)` 
 > **GanCtrl data:** [Zenodo DOI: 10.5281/zenodo.17883691](https://doi.org/10.5281/zenodo.17883691)
 
 ---

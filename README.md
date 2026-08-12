@@ -6,6 +6,7 @@
 
 <p align="center">
 
+[![Paper DOI](https://img.shields.io/badge/Paper_DOI-10.1093%2Ftoxsci%2Fkfag099-blue)](https://doi.org/10.1093/toxsci/kfag099)
 [![Data DOI](https://img.shields.io/badge/Data_DOI-10.5281%2Fzenodo.17883691-blue)](https://doi.org/10.5281/zenodo.17883691)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/Python-3.11.7-blue)
@@ -41,7 +42,7 @@ GanCtrl is trained on high-dose treatment samples and combines:
 The overall goal is to evaluate whether **GanCtrl-generated synthetic controls can reproduce real concurrent-control behavior sufficiently well to preserve downstream toxicological conclusions**.
 
 > **Paper:** Published in *Toxicological Sciences*  
-> **Paper DOI:** `[https://doi.org/10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)` 
+> **Paper DOI:** [10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)  
 > **GanCtrl data:** [Zenodo DOI: 10.5281/zenodo.17883691](https://doi.org/10.5281/zenodo.17883691)
 
 ---
@@ -913,15 +914,16 @@ If you use **GanCtrl** in your research, please cite the associated manuscript a
 
 ## GanCtrl Paper
 
-> **TODO:** Replace the citation below with the final verified GanCtrl paper citation and DOI.
+**GanCtrl: A Generative AI Approach to Derive Study-Aligned Synthetic Controls for Reducing Concurrent Control Animal Use.**  
+*Toxicological Sciences*.  
+[https://doi.org/10.1093/toxsci/kfag099](https://doi.org/10.1093/toxsci/kfag099)
 
-```text
-Chandra M, et al.
-GanCtrl: A Generative AI Approach to Derive Study-Aligned
-Synthetic Controls for Reducing Concurrent Control Animal Use.
-Toxicological Sciences.
-DOI: PASTE_CORRECT_PAPER_DOI_HERE
-```
+## GanCtrl Dataset
+
+**Chandra, M.**  
+*GanCtrl: Synthetic Control Predictions for Liver and Kidney Clinical-Pathology Profiles (Open TG-GATEs).*  
+Zenodo.  
+[https://doi.org/10.5281/zenodo.17883691](https://doi.org/10.5281/zenodo.17883691)
 
 ## GanCtrl Dataset
 
